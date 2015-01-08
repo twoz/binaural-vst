@@ -1,0 +1,8 @@
+azimuths = [-80 -65  -55 -45:5:45 55 65 80]
+elevations = -45 + 5.625*(0:49)
+length of each hrir = 200 samples * 25 azim * 50 elevations * 2 channels = 500e3
+fs = 44100
+
+format:
+hrir_L[azimuths(1), elevations(1)]...hrirR[azimuths(1), elevations(1)]...hrirL[azimuths(1), elevations(2)]...
+...hrir_L[azimuths(25), elevations(50)]......hrir_R[azimuths(25), elevations(50)]
