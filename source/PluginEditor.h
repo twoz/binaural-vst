@@ -1,13 +1,10 @@
+#pragma once
 #ifndef PLUGINEDITOR_H_INCLUDED
 #define PLUGINEDITOR_H_INCLUDED
 
 #include <cmath>
-#include "../JuceLibraryCode/JuceHeader.h"
 #include "PluginProcessor.h"
 
-//==============================================================================
-/**
-*/
 class GridPanel : public Component
 {
 public:
@@ -23,20 +20,19 @@ private:
 	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(GridPanel)
 };
 
-class HrtfBiAuralAudioProcessorEditor  : public AudioProcessorEditor,
-    private Slider::Listener,
-    private ComboBox::Listener
+class HrtfBiAuralAudioProcessorEditor : public AudioProcessorEditor,
+	private Slider::Listener,
+	private ComboBox::Listener
 {
 public:
-    HrtfBiAuralAudioProcessorEditor (HrtfBiAuralAudioProcessor&);
-    ~HrtfBiAuralAudioProcessorEditor();
+	HrtfBiAuralAudioProcessorEditor(HrtfBiAuralAudioProcessor&);
+	~HrtfBiAuralAudioProcessorEditor();
 
-    //==============================================================================
-    void paint (Graphics&) override;
-    void resized() override;
+	void paint(Graphics&) override;
+	void resized() override;
 	void mouseDrag(const MouseEvent&) override;
 	void sliderValueChanged(Slider*) override;
-    void comboBoxChanged(ComboBox*) override;
+	void comboBoxChanged(ComboBox*) override;
 
 private:
 	void updateHrir();
@@ -49,8 +45,7 @@ private:
 	double azimuth = 0.;
 	double elevation = 0.;
 
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (HrtfBiAuralAudioProcessorEditor)
+	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(HrtfBiAuralAudioProcessorEditor)
 };
 
-
-#endif  // PLUGINEDITOR_H_INCLUDED
+#endif
