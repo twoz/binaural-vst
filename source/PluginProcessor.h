@@ -1,29 +1,13 @@
 #pragma once
-#ifndef PLUGINPROCESSOR_H_INCLUDED
-#define PLUGINPROCESSOR_H_INCLUDED
 
-#include <map>
 #include "../JuceLibraryCode/JuceHeader.h"
-
 #include "HRTF.h"
+#include "FFTFilter.h"
 
-struct Crossover
-{
-	IIRFilter loPass;
-	IIRFilter hiPass;
-	float f0 = 300.f;
-	int fs = 44100;
-	void set(float fs, float f0)
-	{
-		loPass.setCoefficients(IIRCoefficients::makeLowPass(fs, f0));
-		hiPass.setCoefficients(IIRCoefficients::makeHighPass(fs, f0));
-		this->fs = fs;
-		this->f0 = f0;
-	}
-};
 
 class HrtfBiAuralAudioProcessor : public AudioProcessor
 {
+	friend class HrtfBiAuralAudioProcessorEditor;
 public:
 	HrtfBiAuralAudioProcessor();
 	~HrtfBiAuralAudioProcessor();
@@ -64,19 +48,31 @@ public:
 	void getStateInformation(MemoryBlock& destData) override;
 	void setStateInformation(const void* data, int sizeInBytes) override;
 
-	void updateHrir(float, float);
-
-	Crossover crossover;
-	HRTFContainer hrtfContainer;
+	void updateHRTF(double, double);
+	void reset();
 
 private:
-	HrirBuffer currentHrir;
-	std::vector<float> tailL, tailR;
-	int nTaps = 200;
-	float tRate = 0.5f;
+	struct Crossover
+	{
+		IIRFilter loPass;
+		IIRFilter hiPass;
+		float f0 = 300.f;
+		int fs = 44100;
+		void set(int fs, float f0)
+		{
+			loPass.setCoefficients(IIRCoefficients::makeLowPass(fs, f0));
+			hiPass.setCoefficients(IIRCoefficients::makeHighPass(fs, f0));
+			this->fs = fs;
+			this->f0 = f0;
+		}
+	} crossover;
 
-	std::vector<float> convolve(const float* x, int xlen, const float* h, int hlen);
+	FFTFilter filters[2];
+	HRTFContainer hrtfContainer;
+	HrirBuffer currentHrir;
+	float crossfadeRate;
+	bool crossfading;
+	bool bypassed;
+
 	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(HrtfBiAuralAudioProcessor)
 };
-
-#endif

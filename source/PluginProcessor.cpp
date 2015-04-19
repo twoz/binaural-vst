@@ -3,19 +3,13 @@
 #include "PluginEditor.h"
 
 HrtfBiAuralAudioProcessor::HrtfBiAuralAudioProcessor()
+	:
+	currentHrir(),
+	crossfadeRate(0.06f),
+	crossfading(true),
+	bypassed(false)
 {
-	tailL.resize(200, 0.f);
-	tailR.resize(200, 0.f);
-
-	setLatencySamples(nTaps / 2);
 	crossover.set(44100, crossover.f0);
-
-	// zero-out 
-	for (int i = 0; i < currentHrir[0].size(); ++i)
-	{
-		currentHrir[0][i] = 0.f;
-		currentHrir[1][i] = 0.f;
-	}
 }
 
 HrtfBiAuralAudioProcessor::~HrtfBiAuralAudioProcessor()
@@ -31,21 +25,21 @@ int HrtfBiAuralAudioProcessor::getNumParameters()
 	return 0;
 }
 
-float HrtfBiAuralAudioProcessor::getParameter(int index)
+float HrtfBiAuralAudioProcessor::getParameter(int)
 {
 	return 0.0f;
 }
 
-void HrtfBiAuralAudioProcessor::setParameter(int index, float newValue)
+void HrtfBiAuralAudioProcessor::setParameter(int, float)
 {
 }
 
-const String HrtfBiAuralAudioProcessor::getParameterName(int index)
+const String HrtfBiAuralAudioProcessor::getParameterName(int)
 {
 	return String();
 }
 
-const String HrtfBiAuralAudioProcessor::getParameterText(int index)
+const String HrtfBiAuralAudioProcessor::getParameterText(int)
 {
 	return String();
 }
@@ -60,12 +54,12 @@ const String HrtfBiAuralAudioProcessor::getOutputChannelName(int channelIndex) c
 	return String(channelIndex + 1);
 }
 
-bool HrtfBiAuralAudioProcessor::isInputChannelStereoPair(int index) const
+bool HrtfBiAuralAudioProcessor::isInputChannelStereoPair(int) const
 {
 	return true;
 }
 
-bool HrtfBiAuralAudioProcessor::isOutputChannelStereoPair(int index) const
+bool HrtfBiAuralAudioProcessor::isOutputChannelStereoPair(int) const
 {
 	return true;
 }
@@ -109,23 +103,23 @@ int HrtfBiAuralAudioProcessor::getCurrentProgram()
 	return 0;
 }
 
-void HrtfBiAuralAudioProcessor::setCurrentProgram(int index)
+void HrtfBiAuralAudioProcessor::setCurrentProgram(int)
 {
 }
 
-const String HrtfBiAuralAudioProcessor::getProgramName(int index)
+const String HrtfBiAuralAudioProcessor::getProgramName(int)
 {
 	return String();
 }
 
-void HrtfBiAuralAudioProcessor::changeProgramName(int index, const String& newName)
+void HrtfBiAuralAudioProcessor::changeProgramName(int, const String&)
 {
 }
 
 void HrtfBiAuralAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
 {
-	crossover.loPass.reset();
-	crossover.hiPass.reset();
+	crossover.set(sampleRate, crossover.f0);
+	reset();
 }
 
 void HrtfBiAuralAudioProcessor::releaseResources()
@@ -134,49 +128,61 @@ void HrtfBiAuralAudioProcessor::releaseResources()
 	// spare memory, etc.
 }
 
-void HrtfBiAuralAudioProcessor::processBlock(AudioSampleBuffer& buffer, MidiBuffer& midiMessages)
+void HrtfBiAuralAudioProcessor::processBlock(AudioSampleBuffer& buffer, MidiBuffer&)
 {
-	const float* in = buffer.getReadPointer(0);
-	float* outL = buffer.getWritePointer(0);
-	float* outR = buffer.getWritePointer(1);
-	int bufferLength = buffer.getNumSamples();
+	// get a pointer to the left channel data
+	auto in = buffer.getWritePointer(0);
+	auto bufferLength = buffer.getNumSamples();
+	// if bypassed copy from left to right channel and return
+	if (bypassed)
+	{
+		buffer.copyFrom(1, 0, in, bufferLength);
+		return;
+	}
 
-	// create two copies of mono input
+	// split the input signal into two bands, only freqs above crossover's f0
+	// will be spatialized
 	std::vector<float> loPassIn(in, in + bufferLength);
-	std::vector<float> hiPassIn(in, in + bufferLength);
-	// send to crossover
 	crossover.loPass.processSamples(&loPassIn[0], bufferLength);
-	crossover.hiPass.processSamples(&hiPassIn[0], bufferLength);
+	crossover.hiPass.processSamples(in, bufferLength);
 
-	// gradually interpolate hrir
-	auto& targetHrir = hrtfContainer.hrir;
-	for (int i = 0; i < currentHrir[0].size(); ++i)
+	// interpolate the impulse response to minimalize audible cracks caused by
+	// changing the source direction
+	if (crossfading)
 	{
-		currentHrir[0][i] += (targetHrir[0][i] - currentHrir[0][i]) * tRate;
-		currentHrir[1][i] += (targetHrir[1][i] - currentHrir[1][i]) * tRate;
+		auto& targetHrir = hrtfContainer.hrir;
+		float diff[2], totalDiff = 0.f;
+		for (int i = 0; i < targetHrir[0].size(); ++i)
+		{
+			diff[0] = targetHrir[0][i] - currentHrir[0][i];
+			diff[1] = targetHrir[1][i] - currentHrir[1][i];
+			currentHrir[0][i] += diff[0] * crossfadeRate;
+			currentHrir[1][i] += diff[1] * crossfadeRate;
+
+			totalDiff += std::fabsf(diff[0]) + std::fabsf(diff[1]);
+		}
+
+		// TODO: condition for stopping crossfading
+		/*	if (totalDiff < 0.1f)
+				crossfading = false;*/
+
 	}
+	// update impule response
+	filters[0].setImpulseResponse(currentHrir[0].data(), HRIR_LENGTH);
+	filters[1].setImpulseResponse(currentHrir[1].data(), HRIR_LENGTH);
 
-	// convolve high frequencies with hrir
-	auto hiPassOutL = convolve(&hiPassIn[0], bufferLength, currentHrir[0].data(), nTaps);
-	auto hiPassOutR = convolve(&hiPassIn[0], bufferLength, currentHrir[1].data(), nTaps);
+	auto outL = in;
+	auto outR = buffer.getWritePointer(1);
+	// since the buffer is {1, 2} copy left channel to the right channel
+	buffer.copyFrom(1, 0, in, bufferLength);
+	filters[0].processSamples(outL, bufferLength);
+	filters[1].processSamples(outR, bufferLength);
 
-	// add nTaps of output from previous block
-	for (int n = 0; n < nTaps; ++n)
+	// add the low frequency (non-spatialized) component
+	for (int i = 0; i < bufferLength; i++)
 	{
-		hiPassOutL[n] += tailL[n];
-		hiPassOutR[n] += tailR[n];
-	}
-	// buffer last nTaps of output
-	for (int n = 0; n < nTaps; ++n)
-	{
-		tailL[n] = hiPassOutL[hiPassOutL.size() - nTaps + n];
-		tailR[n] = hiPassOutR[hiPassOutR.size() - nTaps + n];
-	}
-
-	for (int n = 0; n < bufferLength; ++n)
-	{
-		outL[n] = loPassIn[n] + hiPassOutL[n];
-		outR[n] = loPassIn[n] + hiPassOutR[n];
+		outL[i] += loPassIn[i];
+		outR[i] += loPassIn[i];
 	}
 }
 
@@ -192,14 +198,14 @@ AudioProcessorEditor* HrtfBiAuralAudioProcessor::createEditor()
 }
 
 //==============================================================================
-void HrtfBiAuralAudioProcessor::getStateInformation(MemoryBlock& destData)
+void HrtfBiAuralAudioProcessor::getStateInformation(MemoryBlock&)
 {
 	// You should use this method to store your parameters in the memory block.
 	// You could do that either as raw data, or use the XML or ValueTree classes
 	// as intermediaries to make it easy to save and load complex data.
 }
 
-void HrtfBiAuralAudioProcessor::setStateInformation(const void* data, int sizeInBytes)
+void HrtfBiAuralAudioProcessor::setStateInformation(const void*, int)
 {
 	// You should use this method to restore your parameters from this memory block,
 	// whose contents will have been created by the getStateInformation() call.
@@ -212,24 +218,16 @@ AudioProcessor* JUCE_CALLTYPE createPluginFilter()
 	return new HrtfBiAuralAudioProcessor();
 }
 
-std::vector<float> HrtfBiAuralAudioProcessor::convolve(const float* x, int xlen, const float* h, int hlen)
-{
-	std::vector<float> y(xlen + hlen - 1, 0);
-	int N;
-	for (int n = 0; n < y.size(); ++n)
-	{
-		N = std::min(n, hlen);
-		for (int i = 0; i < N; ++i)
-		{
-			if (n - i < xlen)
-				y[n] += x[n - i] * h[i];
-		}
-	}
-	return y;
-}
-
-void HrtfBiAuralAudioProcessor::updateHrir(float azimuth, float elevation)
+void HrtfBiAuralAudioProcessor::updateHRTF(double azimuth, double elevation)
 {
 	hrtfContainer.interpolate(azimuth, elevation);
+	crossfading = true;
+}
 
+void HrtfBiAuralAudioProcessor::reset()
+{
+	crossover.loPass.reset();
+	crossover.hiPass.reset();
+	filters[0].reset();
+	filters[1].reset();
 }

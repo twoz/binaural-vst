@@ -1,54 +1,27 @@
 #include "PluginEditor.h"
 
-GridPanel::GridPanel()
-{
-	auto thisDir = File::getSpecialLocation(File::currentExecutableFile).getParentDirectory().getFullPathName();
-	headIcon = ImageFileFormat::loadFrom(File(thisDir + "/head.png"));
-}
-
-GridPanel::~GridPanel()
-{
-}
-
-void GridPanel::paint(Graphics& g)
-{
-	g.fillAll(Colours::white);
-	g.setColour(Colours::black);
-
-	// 
-	g.drawLine(0, 0, getWidth(), 0);
-	g.drawLine(0, 0, 0, getHeight());
-	g.drawLine(0, getHeight(), getWidth(), getHeight());
-
-	int r = 15;
-	// draw grid
-	Rectangle<float> gridRect(r, r, getWidth() - 2 * r, getHeight() - 2 * r);
-	g.drawEllipse(gridRect, 2);
-	g.drawLine(gridRect.getX(), gridRect.getCentreY(), gridRect.getRight(), gridRect.getCentreY(), 1);
-	g.drawLine(gridRect.getCentreX(), gridRect.getY(), gridRect.getCentreX(), gridRect.getBottom(), 1);
-
-	// draw source
-	r = 25;
-	Rectangle<int> rect(gridRect.getCentreX() + gridRect.getWidth() * 0.5 * sin(sourceAzimuth) - r * 0.5, gridRect.getCentreY() - gridRect.getHeight() * 0.5 * cos(sourceAzimuth) - r * 0.5, r, r);
-	g.setColour(Colours::grey);
-	g.fillEllipse(rect.toFloat());
-	g.setColour(Colours::black);
-	g.drawFittedText(String("S"), rect, Justification::centred, 1);
-
-	// draw "head"
-	r = 50;
-	g.drawImage(headIcon, gridRect.getCentreX() - r / 2, gridRect.getCentreY() - r / 2, r, r, 0, 0, 100, 100);
-}
-
-
 HrtfBiAuralAudioProcessorEditor::HrtfBiAuralAudioProcessorEditor(HrtfBiAuralAudioProcessor& p)
-	: AudioProcessorEditor(&p), processor(p)
+	:
+	AudioProcessorEditor(&p),
+	processor(p),
+	bgColor(51, 51, 51),
+	fgColor(73, 166, 201),
+	topViewX(15.f),
+	topViewY(60.f),
+	sideViewX(240.f),
+	sideViewY(250.f),
+	azimuth(0.),
+	elevation(0.),
+	nextHrtf("next", 0.f, fgColor),
+	prevHrtf("prev", 0.5f, fgColor)
 {
+	setSize(350, 420);
 
-	setSize(320, 400);
+	topViewImage = ImageFileFormat::loadFrom(head_top_png, head_top_png_size);
+	sideViewImage = ImageFileFormat::loadFrom(head_side_png, head_side_png_size);
+	sourceImage = ImageFileFormat::loadFrom(source_icon_png, source_icon_png_size);
 
-	elevationSlider.setSliderStyle(Slider::RotaryVerticalDrag);
-	elevationSlider.setRotaryParameters(PI, PI * 2, true);
+	elevationSlider.setSliderStyle(Slider::LinearVertical);
 	elevationSlider.setRange(-90, 90, 0.1);
 	elevationSlider.setValue(0);
 	elevationSlider.setTextBoxStyle(Slider::TextBoxBelow, true, 50, 20);
@@ -58,62 +31,130 @@ HrtfBiAuralAudioProcessorEditor::HrtfBiAuralAudioProcessorEditor(HrtfBiAuralAudi
 
 	crossoverSlider.setSliderStyle(Slider::LinearHorizontal);
 	crossoverSlider.setTextBoxStyle(Slider::TextBoxRight, true, 50, 20);
-	crossoverSlider.setRange(20, 2000, 1);
+	crossoverSlider.setRange(20, 500, 1);
 	crossoverSlider.setValue(p.crossover.f0);
 	crossoverSlider.addListener(this);
 	crossoverSlider.setName("Crossover");
 	addAndMakeVisible(crossoverSlider);
 
-	grid.addMouseListener(this, false);
-	addAndMakeVisible(grid);
+	bypassButton.setName("Bypass");
+	bypassButton.setImages(
+		false,
+		true,
+		true,
+		ImageFileFormat::loadFrom(bypass_up_png, bypass_up_png_size),
+		1.0f,
+		Colours::transparentWhite,
+		Image::null,
+		1.0f,
+		Colours::transparentWhite,
+		ImageFileFormat::loadFrom(bypass_down_png, bypass_down_png_size),
+		1.0f,
+		Colours::transparentWhite);
+	bypassButton.setClickingTogglesState(true);
+	bypassButton.addListener(this);
+	addAndMakeVisible(bypassButton);
 
-	auto& subjectsList = p.hrtfContainer.getSubjects();
-	for (auto& subject : subjectsList)
-		hrtfList.addItem(subject.toShortString(), subject.id);
-	hrtfList.addListener(this);
-	hrtfList.setSelectedId(21);
-	addAndMakeVisible(hrtfList);
+	prevHrtf.addListener(this);
+	addAndMakeVisible(nextHrtf);
+	nextHrtf.addListener(this);
+	addAndMakeVisible(prevHrtf);
 }
 
 HrtfBiAuralAudioProcessorEditor::~HrtfBiAuralAudioProcessorEditor()
 {
 }
 
-//==============================================================================
 void HrtfBiAuralAudioProcessorEditor::paint(Graphics& g)
 {
-	g.fillAll(Colours::white);
-	g.setColour(Colours::black);
-	g.setFont(15.0f);
+	g.setColour(bgColor);
+	g.fillAll();
+	drawDisplays(g);
+	drawGridLines(g);
+	drawSources(g);
+	drawBordersAndLabels(g);
+}
 
-	g.drawRect(grid.getX(), grid.getY(), getWidth() - 20, grid.getHeight());
+void HrtfBiAuralAudioProcessorEditor::drawGridLines(Graphics& g)
+{
+	auto w = topViewImage.getWidth();
+	auto h = topViewImage.getHeight();
+	g.setColour(Colours::white);
+	g.setOpacity(0.5f);
+	auto lineHorizontal = Line<float>(topViewX, topViewY + h * 0.5f, topViewX + w, topViewY + h * 0.5f);
+	auto lineVertical = Line<float>(topViewX + w * 0.5f, topViewY, topViewX + w * 0.5f, topViewY + h);
+	float dashes [] = { 3, 2 };
+	g.drawDashedLine(lineHorizontal, dashes, 2);
+	g.drawDashedLine(lineVertical, dashes, 2);
+	w = sideViewImage.getWidth();
+	h = sideViewImage.getHeight();
+	lineHorizontal = Line<float>(sideViewX, sideViewY + h * 0.5f, sideViewX + w, sideViewY + h * 0.5f);
+	lineVertical = Line<float>(sideViewX + w * 0.5f, sideViewY, sideViewX + w * 0.5f, sideViewY + h);
+	g.drawDashedLine(lineHorizontal, dashes, 2);
+	g.drawDashedLine(lineVertical, dashes, 2);
+}
 
-	g.setFont(15.0f);
-	g.drawFittedText("Current Subject", hrtfList.getX(), hrtfList.getY() - 20, hrtfList.getWidth(), 20, Justification::centred, 1);
-	g.setFont(13.0f);
-	g.drawFittedText(processor.hrtfContainer.getCurrentSubject().toLongString(), hrtfList.getX(), hrtfList.getBottom() + 10, hrtfList.getWidth(), 30, Justification::left, 1);
-	g.drawFittedText(String("Elevation [deg]"), elevationSlider.getX(), elevationSlider.getY() - 20, elevationSlider.getWidth(), 10, Justification::centredTop, 1);
-	g.drawFittedText(String("Crossover cutoff [Hz] "), crossoverSlider.getX(), crossoverSlider.getY() - 10, crossoverSlider.getWidth(), 10, Justification::left, 1);
+void HrtfBiAuralAudioProcessorEditor::drawDisplays(Graphics& g)
+{
+	g.drawImageAt(topViewImage, topViewX, topViewY);
+	g.drawImageAt(sideViewImage, sideViewX, sideViewY);
+	g.setColour(bgColor);
+	g.drawEllipse(topViewX, topViewY, topViewImage.getWidth(), topViewImage.getHeight(), 2.0f);
+	g.drawEllipse(sideViewX, sideViewY, sideViewImage.getWidth(), sideViewImage.getHeight(), 2.0f);
+}
+
+void HrtfBiAuralAudioProcessorEditor::drawSources(Graphics& g)
+{
+	auto w = topViewImage.getWidth();
+	auto h = topViewImage.getHeight();
+	auto radius = w * 0.5f - 30;
+	auto x = radius * std::sin(azimuth);
+	auto y = radius * std::cos(azimuth);
+	auto sourceX = topViewX + w * 0.5f + x;
+	auto sourceY = topViewY + h * 0.5f - y;
+	ColourGradient grad(fgColor, sourceX, sourceY, Colours::transparentBlack, topViewX + w * 0.5f, topViewY + h * 0.5f, true);
+	g.setGradientFill(grad);
+	g.fillEllipse(topViewX, topViewY, w, h);
+	g.drawImageAt(sourceImage, sourceX - sourceImage.getWidth() * 0.5f, sourceY - sourceImage.getHeight() * 0.5f);
+}
+
+void HrtfBiAuralAudioProcessorEditor::drawBordersAndLabels(Graphics& g)
+{
+	g.setColour(fgColor);
+	Rectangle<int> topSection(5, 5, getWidth() - 10, 50);
+	Rectangle<int> middleSection(5, 55, getWidth() - 10, getHeight() - 120);
+	Rectangle<int> bottomSection(5, getHeight() - 65, getWidth() - 10, 60);
+	g.drawRoundedRectangle(topSection.toFloat(), 3.f, 2.f);
+	g.drawRoundedRectangle(middleSection.toFloat(), 3.f, 2.f);
+	g.drawRoundedRectangle(bottomSection.toFloat(), 3.f, 2.f);
+	g.setColour(Colours::white);
+	g.setFont(20.f);
+	g.drawFittedText(processor.hrtfContainer.getCurrentSubjectInfo().name, topSection, Justification::centred, 1);
+	g.setFont(11.0f);
+	g.drawFittedText("HRTF Selection", topSection, Justification::topLeft, 1);
+	g.drawFittedText("Stereo controls", middleSection, Justification::topLeft, 1);
+	g.drawFittedText(String("ELEVATION"), elevationSlider.getX(), elevationSlider.getY() - 10, elevationSlider.getWidth(), 12, Justification::centredTop, 1);
+	g.drawFittedText(String("CROSSSOVER FREQUENCY"), crossoverSlider.getX(), crossoverSlider.getY(), crossoverSlider.getWidth(), 12, Justification::left, 1);
 }
 
 void HrtfBiAuralAudioProcessorEditor::resized()
 {
-	int x0 = 10;
-	hrtfList.setBounds(10, 20, getWidth() - 20, 30);
-	grid.setBounds(x0, 100, 200, 200);
-	elevationSlider.setBounds(grid.getRight(), grid.getY() + grid.getHeight() / 2 - 40, 100, 100);
-	crossoverSlider.setBounds(x0, grid.getBottom() + 20, getWidth() - 2 * x0, 50);
+	prevHrtf.setBounds(100, 25, 40, 20);
+	nextHrtf.setBounds(220, 25, 40, 20);
+	elevationSlider.setBounds(280, 80, 50, 160);
+	crossoverSlider.setBounds(10, getBottom() - 50, 250, 50);
+	bypassButton.setBounds(getWidth() - 90, getBottom() - 40, 90, 30);
 }
 
 void HrtfBiAuralAudioProcessorEditor::mouseDrag(const MouseEvent &event)
 {
-	auto pos = event.getEventRelativeTo(&grid).position;
-	if (grid.contains(Point<int>(pos.x, pos.y)))
+	auto pos = event.getPosition();
+	if (pos.x > topViewX && pos.x < topViewX + topViewImage.getWidth() &&
+		pos.y > topViewY && pos.y < topViewY + topViewImage.getHeight())
 	{
-		auto x = pos.x - grid.centre().x;
-		auto y = grid.centre().y - pos.y;
-		azimuth = std::atan2(x, y);
-		grid.sourceAzimuth = azimuth;
+		auto x = pos.x - topViewX - topViewImage.getWidth() * 0.5f;
+		auto y = pos.y - topViewY - topViewImage.getHeight() * 0.5f;
+		azimuth = std::atan2(x, -y);
 		updateHrir();
 		repaint();
 	}
@@ -133,10 +174,17 @@ void HrtfBiAuralAudioProcessorEditor::sliderValueChanged(Slider* slider)
 	}
 }
 
-void HrtfBiAuralAudioProcessorEditor::comboBoxChanged(ComboBox* comboBox)
+void HrtfBiAuralAudioProcessorEditor::buttonClicked(Button* button)
 {
-	processor.hrtfContainer.setCurrentSubject(comboBox->getSelectedId());
-	updateHrir();
+	auto buttonName = button->getName();
+	if (buttonName == bypassButton.getName())
+		processor.bypassed = button->getToggleState();
+	else if (buttonName == nextHrtf.getName())
+		processor.hrtfContainer.setCurrentSubject(processor.hrtfContainer.getCurrentSubjectIndex() + 1);
+	else if (buttonName == prevHrtf.getName())
+		processor.hrtfContainer.setCurrentSubject(processor.hrtfContainer.getCurrentSubjectIndex() - 1);
+
+	processor.reset();
 	repaint();
 }
 
@@ -146,10 +194,7 @@ void HrtfBiAuralAudioProcessorEditor::updateHrir()
 	auto y = cos(elevation) * cos(azimuth);
 	auto z = sin(elevation);
 
-	auto azmHeadPolar = rad2deg(asin(x));
-	auto elvHeadPolar = rad2deg(atan2(z, y));
-	if (y < 0 && z < 0)
-		elvHeadPolar += 360;
+	auto point = cartesianToInteraural(Point3Cartesian<double>(x, y, z));
 
-	processor.updateHrir(azmHeadPolar, elvHeadPolar);
+	processor.updateHRTF(rad2deg(point.azimuth), rad2deg(point.elevation));
 }
