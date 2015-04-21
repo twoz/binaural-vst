@@ -10,13 +10,6 @@ struct Point3Cartesian
 	Type x;
 	Type y;
 	Type z;
-	Point3Cartesian<Type>(Type x, Type y, Type z)
-		:
-		x(x),
-		y(y),
-		z(z)
-	{
-	}
 };
 
 template <typename Type>
@@ -25,13 +18,6 @@ struct Point3DoublePolar
 	Type radius;
 	Type azimuth;
 	Type elevation;
-	Point3DoublePolar(Type radius, Type azimuth, Type elevation)
-		:
-		radius(radius),
-		azimuth(azimuth),
-		elevation(elevation)
-	{
-	}
 };
 
 template <typename Type>
@@ -55,7 +41,7 @@ inline Point3DoublePolar<Type> cartesianToInteraural(const Point3Cartesian<Type>
 	if (p.y < 0 && p.z < 0)
 		elevation += 2 * Pi;
 
-	return Point3DoublePolar<Type>{ radius, azimuth, elevation };
+	return Point3DoublePolar < Type > { radius, azimuth, elevation };
 }
 
 template <typename Type>
@@ -65,7 +51,17 @@ inline Point3Cartesian<Type> interauralToCartesian(const Point3DoublePolar<Type>
 	Type y = p.radius * std::cos(p.azimuth) * std::cos(p.elevation);
 	Type z = p.radius * std::cos(p.azimuth) * std::sin(p.elevation);
 
-	return Point3Cartesian<Type>{ x, y, z };
+	return Point3Cartesian < Type > { x, y, z };
+}
+
+template <typename Type>
+inline Point3DoublePolar<Type> sphericalToInteraural(const Point3DoublePolar<Type>& p)
+{
+	Type x = p.radius * std::cos(p.elevation) * std::sin(p.azimuth);
+	Type y = p.radius * std::cos(p.elevation) * std::cos(p.azimuth);
+	Type z = p.radius * std::sin(p.elevation);
+
+	return cartesianToInteraural(Point3Cartesian < double > {x, y, z});
 }
 
 template <class T1, class T2>
