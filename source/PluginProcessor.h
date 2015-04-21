@@ -5,7 +5,8 @@
 #include "FFTFilter.h"
 
 
-class HrtfBiAuralAudioProcessor : public AudioProcessor
+class HrtfBiAuralAudioProcessor : 
+	public AudioProcessor
 {
 	friend class HrtfBiAuralAudioProcessorEditor;
 public:
