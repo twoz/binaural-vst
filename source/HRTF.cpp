@@ -3,7 +3,7 @@
 Subject::Subject(String pathToHRIR, String name, String description,
 	float headWidth, float headHeight, float headDepth)
 	:
-	info({ name, description, headWidth, headHeight, headDepth }),
+	info({name, description, headWidth, headHeight, headDepth}),
 	triangulation(nullptr)
 {
 	loadHrir(pathToHRIR);
@@ -16,8 +16,8 @@ void Subject::loadHrir(String filename)
 	if (istream.openedOk())
 	{
 		std::vector<tpp::Delaunay::Point> points;
-		int azimuths [] = { -90, -80, -65, -55, -45, -40, -35, -30, -25, -20,
-			-15, -10, -5, 0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 55, 65, 80, 90 };
+		int azimuths[] = {-90, -80, -65, -55, -45, -40, -35, -30, -25, -20,
+			-15, -10, -5, 0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 55, 65, 80, 90};
 		for (auto azm : azimuths)
 		{
 
@@ -27,11 +27,11 @@ void Subject::loadHrir(String filename)
 			istream.read(hrirDict[azm][0][1].data(), 200 * sizeof(float));
 			points.push_back(tpp::Delaunay::Point(azm, -90));
 			// 50 elevations
-			for (int i = 0; i < 50; ++i)
+			for (int i = 1; i < 51; ++i)
 			{
 				istream.read(hrirDict[azm][i][0].data(), 200 * sizeof(float));
 				istream.read(hrirDict[azm][i][1].data(), 200 * sizeof(float));
-				points.push_back(tpp::Delaunay::Point(azm, -45 + 5.625*i));
+				points.push_back(tpp::Delaunay::Point(azm, -45 + 5.625 * (i - 1)));
 			}
 			// 270 deg
 			istream.read(hrirDict[azm][51][0].data(), 200 * sizeof(float));
@@ -57,14 +57,14 @@ HrirBuffer Subject::interpolateHRIR(double azimuth, double elevation)
 		auto B = triangulation->point_at_vertex_id(vertexB);
 		auto C = triangulation->point_at_vertex_id(vertexC);
 
-		double T [] = { A[0] - C[0], A[1] - C[1],
-			B[0] - C[0], B[1] - C[1] };
-		double invT [] = { T[3], -T[1], -T[2], T[0] };
+		double T[] = {A[0] - C[0], A[1] - C[1],
+			B[0] - C[0], B[1] - C[1]};
+		double invT[] = {T[3], -T[1], -T[2], T[0]};
 		auto det = 1 / (T[0] * T[3] - T[1] * T[2]);
 		for (int i = 0; i < 4; ++i)
 			invT[i] *= det;
 
-		double X [] = { azimuth - C[0], elevation - C[1] };
+		double X[] = {azimuth - C[0], elevation - C[1]};
 
 		/* Barycentric coordinates of point X. */
 		auto g1 = invT[0] * X[0] + invT[2] * X[1];
@@ -79,9 +79,9 @@ HrirBuffer Subject::interpolateHRIR(double azimuth, double elevation)
 			continue;
 		else
 		{
-			auto& irA = hrirDict[(int) A[0]][getElvIndex(std::lround(A[1]))];
-			auto& irB = hrirDict[(int) B[0]][getElvIndex(std::lround(B[1]))];
-			auto& irC = hrirDict[(int) C[0]][getElvIndex(std::lround(C[1]))];
+			auto& irA = hrirDict[(int)A[0]][getElvIndex(std::lround(A[1]))];
+			auto& irB = hrirDict[(int)B[0]][getElvIndex(std::lround(B[1]))];
+			auto& irC = hrirDict[(int)C[0]][getElvIndex(std::lround(C[1]))];
 			/* Fill HRIR array and return */
 			HrirBuffer hrir;
 			for (size_t i = 0; i < hrir[0].size(); ++i)
@@ -111,8 +111,8 @@ HRTFContainer::HRTFContainer()
 	hrir()
 {
 	auto thisDir = File::getSpecialLocation(File::currentExecutableFile).getParentDirectory();
-	String filenames [] = { "kemar.bin", "male.bin", "female.bin" };
-	String names [] = { "Kemar", "Male", "Female" };
+	String filenames[] = {"kemar.bin", "male.bin", "female.bin"};
+	String names[] = {"Kemar", "Male", "Female"};
 	for (int i = 0; i < 3; ++i)
 	{
 		try
