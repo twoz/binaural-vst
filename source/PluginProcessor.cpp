@@ -23,7 +23,8 @@ HrtfBiAuralAudioProcessor::HrtfBiAuralAudioProcessor()
 	{
 		hrirLoaded_ = false;
 		bypassed_ = true;
-	}	
+	}
+	hrtfContainer_.updateHRIR(0, 0);
 }
 
 HrtfBiAuralAudioProcessor::~HrtfBiAuralAudioProcessor()
