@@ -1,8 +1,36 @@
 #pragma once
+#include <complex>
+#include <vector>
 
-#include <cmath>
+
+template <typename T>
+using ComplexVector = std::vector<std::complex<T>>;
 
 const double Pi = 3.1415926535897932384626433832795;
+
+inline bool isPowerOf2(size_t val)
+{
+	return (val == 1 || (val & (val - 1)) == 0);
+}
+
+inline int nextPowerOf2(int x)
+{
+	if (x < 0)
+		return 0;
+	--x;
+	x |= x >> 1;
+	x |= x >> 2;
+	x |= x >> 4;
+	x |= x >> 8;
+	x |= x >> 16;
+	return x + 1;
+}
+
+template <typename T>
+inline T clamp(const T& x, const T& lower, const T& upper)
+{
+	return std::min<T>(std::max<T>(x, lower), upper);
+}
 
 template <typename Type>
 struct Point3Cartesian
@@ -63,19 +91,3 @@ inline Point3DoublePolar<Type> sphericalToInteraural(const Point3DoublePolar<Typ
 
 	return cartesianToInteraural(Point3Cartesian < double > {x, y, z});
 }
-
-template <class T1, class T2>
-inline std::vector<float> convolve(const T1& x1, const T2& x2)
-{
-	std::vector<float> y(x1.size() + x2.size() - 1, 0);
-	for (int n = 0; n < y.size(); ++n)
-	{
-		for (int k = 0; k < x2.size(); ++k)
-		{
-			if (n - k >= 0 && n - k < x1.size())
-				y[n] += x1[n - k] * x2[k];
-		}
-	}
-	return y;
-}
-

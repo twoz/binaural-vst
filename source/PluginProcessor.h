@@ -1,11 +1,10 @@
 #pragma once
-
 #include "../JuceLibraryCode/JuceHeader.h"
-#include "HRTF.h"
-#include "FFTFilter.h"
+#include "HRTFContainer.h"
+#include "FIRFilter.h"
 
 
-class HrtfBiAuralAudioProcessor : 
+class HrtfBiAuralAudioProcessor :
 	public AudioProcessor
 {
 	friend class HrtfBiAuralAudioProcessorEditor;
@@ -50,6 +49,7 @@ public:
 	void setStateInformation(const void* data, int sizeInBytes) override;
 
 	void updateHRTF(double, double);
+	void toggleBypass(bool bypass);
 	void reset();
 
 private:
@@ -57,7 +57,7 @@ private:
 	{
 		IIRFilter loPass;
 		IIRFilter hiPass;
-		float f0 = 300.f;
+		float f0 = 150.f;
 		int fs = 44100;
 		void set(int fs, float f0)
 		{
@@ -66,14 +66,20 @@ private:
 			this->fs = fs;
 			this->f0 = f0;
 		}
-	} crossover;
-
-	FFTFilter filters[2];
-	HRTFContainer hrtfContainer;
-	HrirBuffer currentHrir;
+	} crossover_;
+	FIRFilter filters_[2];
+	HRTFContainer hrtfContainer_;
+	HrirBuffer currentHrir_;
+	std::vector<float> loPassIn_;
+	std::vector<float> hiPassIn_;
+	std::vector<float> buffers_[2];
 	float crossfadeRate;
-	bool crossfading;
-	bool bypassed;
+	float panAmount_;
+	float gain_;
+	bool crossfading_;
+	bool bypassed_;
+
+	SpinLock processLock_;
 
 	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(HrtfBiAuralAudioProcessor)
 };

@@ -1,8 +1,7 @@
 #pragma once
-
 #include <cmath>
 #include "../JuceLibraryCode/JuceHeader.h"
-#include "Helpers.h"
+#include "Util.h"
 #include "PluginEditor.h"
 #include "images/head_top.h"
 #include "images/source_icon.h"
@@ -25,11 +24,10 @@ private:
 	void drawSource(Graphics& g);
 	void updateHRTF();
 
-	Image headImage;
-	Image sourceImage;
-	Point3DoublePolar<double> sourcePos;
-	HrtfBiAuralAudioProcessorEditor* editor;
+	Image headImage_;
+	Image sourceImage_;
+	Point3DoublePolar<double> sourcePos_;
+	HrtfBiAuralAudioProcessorEditor* editor_;
 
 	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MainDisplay)
 };
-

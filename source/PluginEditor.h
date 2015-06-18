@@ -1,10 +1,7 @@
 #pragma once
-
 #include "PluginProcessor.h"
 #include "MainDisplay.h"
-#include "Helpers.h"
-#include "images/bypass_down.h"
-#include "images/bypass_up.h"
+#include "Util.h"
 
 
 class HrtfBiAuralAudioProcessorEditor :
@@ -25,15 +22,16 @@ public:
 private:
 	void drawBordersAndLabels(Graphics& g);
 
-	HrtfBiAuralAudioProcessor& processor;
-	Colour bgColor;
-	Colour fgColor;
-	ScopedPointer<MainDisplay> mainDisplay;
-	ArrowButton nextHrtf;
-	ArrowButton prevHrtf;
-	Slider elevationSlider;
-	Slider crossoverSlider;
-	ImageButton bypassButton;
+	HrtfBiAuralAudioProcessor& processor_;
+	ScopedPointer<MainDisplay> mainDisplay_;
+	Colour bgColor_;
+	Colour fgColor_;
+	Slider elevationSlider_;
+	Slider crossoverSlider_;
+	Slider wetMixSlider_;
+	Slider gainSlider_;
+	TextButton bypassButton_;
+	int topSectionY_;
 
 	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(HrtfBiAuralAudioProcessorEditor)
 };
