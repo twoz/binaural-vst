@@ -149,10 +149,7 @@ void HrtfBiAuralAudioProcessorEditor::buttonClicked(Button* button)
 {
 	auto buttonName = button->getName();
 	if (buttonName == bypassButton_.getName())
-	{
 		processor_.toggleBypass(button->getToggleState());
-		setEnabled(false);
-	}
 
 	repaint();
 }
