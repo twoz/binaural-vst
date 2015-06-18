@@ -5,9 +5,6 @@ HRTFContainer::HRTFContainer()
 	:
 	hrir_()
 {
-	auto thisDir = File::getSpecialLocation(File::currentExecutableFile).getParentDirectory();
-	loadHrir(thisDir.getFullPathName() + "/hrir/kemar.bin");
-	updateHRIR(0, 0);
 }
 
 HRTFContainer::~HRTFContainer()
@@ -16,6 +13,9 @@ HRTFContainer::~HRTFContainer()
 
 void HRTFContainer::updateHRIR(double azimuth, double elevation)
 {
+	if (triangulation_ == nullptr)
+		return;
+
 	// Iterate through all the faces of the triangulation
 	for (auto fit = triangulation_->fbegin(); fit != triangulation_->fend(); ++fit)
 	{

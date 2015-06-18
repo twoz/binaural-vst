@@ -15,6 +15,7 @@ public:
 	~HrtfBiAuralAudioProcessorEditor();
 
 	void paint(Graphics& g) override;
+	void paintOverChildren(Graphics& g) override;
 	void resized() override;
 	void sliderValueChanged(Slider* slider) override;
 	void buttonClicked(Button* button) override;

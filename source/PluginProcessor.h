@@ -78,6 +78,7 @@ private:
 	float gain_;
 	bool crossfading_;
 	bool bypassed_;
+	bool hrirLoaded_;
 
 	SpinLock processLock_;
 

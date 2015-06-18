@@ -13,6 +13,17 @@ HrtfBiAuralAudioProcessor::HrtfBiAuralAudioProcessor()
 	bypassed_(false)
 {
 	crossover_.set(44100, crossover_.f0);
+	auto thisDir = File::getSpecialLocation(File::currentExecutableFile).getParentDirectory();
+	try
+	{
+		hrtfContainer_.loadHrir(thisDir.getFullPathName() + "/hrir/kemar.bin");
+		hrirLoaded_ = true;
+	}
+	catch (std::ios_base::failure&)
+	{
+		hrirLoaded_ = false;
+		bypassed_ = true;
+	}	
 }
 
 HrtfBiAuralAudioProcessor::~HrtfBiAuralAudioProcessor()

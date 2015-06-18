@@ -19,8 +19,8 @@ public:
 	void updateHRIR(double azimuth, double elevation);
 	const HrirBuffer& hrir() const;
 
-private:
 	void loadHrir(String filename);
+private:
 	int getElvIndex(int elv);
 
 	std::map<int, std::array<HrirBuffer, 52>> hrirDict_;
