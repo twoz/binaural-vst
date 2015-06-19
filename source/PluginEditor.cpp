@@ -116,12 +116,18 @@ void HrtfBiAuralAudioProcessorEditor::drawBordersAndLabels(Graphics& g)
 	g.drawRoundedRectangle(topSection.toFloat(), 3.f, 2.f);
 	g.drawRoundedRectangle(bottomSection.toFloat(), 3.f, 2.f);
 	g.setColour(Colours::white);
-	g.setFont(20.f);
 	g.setFont(11.0f);
 	g.drawFittedText(String("ELEVATION (deg)"), elevationSlider_.getX(), elevationSlider_.getY() - 22, elevationSlider_.getWidth(), 22, Justification::centredTop, 2);
 	g.drawFittedText(String("CROSS FREQ (Hz)"), crossoverSlider_.getX(), crossoverSlider_.getY() - 12, crossoverSlider_.getWidth(), 12, Justification::centred, 1);
 	g.drawFittedText(String("AMOUNT (%)"), amountSlider_.getX(), amountSlider_.getY() - 12, amountSlider_.getWidth(), 12, Justification::centred, 1);
 	g.drawFittedText(String("GAIN (dB)"), gainSlider_.getX(), gainSlider_.getY() - 12, gainSlider_.getWidth(), 12, Justification::centred, 1);
+
+	Rectangle<int> labelSection(getWidth() - 90, topSectionY_ + 5, 80, 50);
+	g.setColour(fgColor_);
+	g.drawRoundedRectangle(labelSection.toFloat(), 3.f, 1.f);
+	g.setFont(14.f);
+	g.setColour(Colours::white);
+	g.drawFittedText("BinAural VST\nby TWoz", labelSection, Justification::centred, 2);
 }
 
 void HrtfBiAuralAudioProcessorEditor::resized()
