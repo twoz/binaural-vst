@@ -29,7 +29,7 @@ private:
 	Colour fgColor_;
 	Slider elevationSlider_;
 	Slider crossoverSlider_;
-	Slider wetMixSlider_;
+	Slider amountSlider_;
 	Slider gainSlider_;
 	TextButton bypassButton_;
 	int topSectionY_;

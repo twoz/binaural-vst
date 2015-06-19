@@ -38,18 +38,18 @@ HrtfBiAuralAudioProcessorEditor::HrtfBiAuralAudioProcessorEditor(HrtfBiAuralAudi
 	crossoverSlider_.setName("Crossover");
 	addAndMakeVisible(crossoverSlider_);
 
-	wetMixSlider_.setSliderStyle(Slider::Rotary);
-	wetMixSlider_.setColour(Slider::rotarySliderFillColourId, fgColor_);
-	wetMixSlider_.setColour(Slider::textBoxBackgroundColourId, Colours::black);
-	wetMixSlider_.setColour(Slider::textBoxTextColourId, Colours::white);
-	wetMixSlider_.setColour(Slider::textBoxOutlineColourId, Colours::black);
-	wetMixSlider_.setRotaryParameters(10 / 8. * Pi, 22 / 8. * Pi, true);
-	wetMixSlider_.setTextBoxStyle(Slider::TextBoxBelow, true, 50, 15);
-	wetMixSlider_.setRange(0, 100, 1);
-	wetMixSlider_.setValue(100.);
-	wetMixSlider_.addListener(this);
-	wetMixSlider_.setName("Mix");
-	addAndMakeVisible(wetMixSlider_);
+	amountSlider_.setSliderStyle(Slider::Rotary);
+	amountSlider_.setColour(Slider::rotarySliderFillColourId, fgColor_);
+	amountSlider_.setColour(Slider::textBoxBackgroundColourId, Colours::black);
+	amountSlider_.setColour(Slider::textBoxTextColourId, Colours::white);
+	amountSlider_.setColour(Slider::textBoxOutlineColourId, Colours::black);
+	amountSlider_.setRotaryParameters(10 / 8. * Pi, 22 / 8. * Pi, true);
+	amountSlider_.setTextBoxStyle(Slider::TextBoxBelow, true, 50, 15);
+	amountSlider_.setRange(0, 100, 1);
+	amountSlider_.setValue(100.);
+	amountSlider_.addListener(this);
+	amountSlider_.setName("Mix");
+	addAndMakeVisible(amountSlider_);
 
 	gainSlider_.setSliderStyle(Slider::Rotary);
 	gainSlider_.setColour(Slider::rotarySliderFillColourId, fgColor_);
@@ -120,7 +120,7 @@ void HrtfBiAuralAudioProcessorEditor::drawBordersAndLabels(Graphics& g)
 	g.setFont(11.0f);
 	g.drawFittedText(String("ELEVATION (deg)"), elevationSlider_.getX(), elevationSlider_.getY() - 22, elevationSlider_.getWidth(), 22, Justification::centredTop, 2);
 	g.drawFittedText(String("CROSS FREQ (Hz)"), crossoverSlider_.getX(), crossoverSlider_.getY() - 12, crossoverSlider_.getWidth(), 12, Justification::centred, 1);
-	g.drawFittedText(String("WET MIX (%)"), wetMixSlider_.getX(), wetMixSlider_.getY() - 12, wetMixSlider_.getWidth(), 12, Justification::centred, 1);
+	g.drawFittedText(String("AMOUNT (%)"), amountSlider_.getX(), amountSlider_.getY() - 12, amountSlider_.getWidth(), 12, Justification::centred, 1);
 	g.drawFittedText(String("GAIN (dB)"), gainSlider_.getX(), gainSlider_.getY() - 12, gainSlider_.getWidth(), 12, Justification::centred, 1);
 }
 
@@ -129,7 +129,7 @@ void HrtfBiAuralAudioProcessorEditor::resized()
 	mainDisplay_->setBounds(20, 20, 260, 260);
 	elevationSlider_.setBounds(280, 30, 50, 260);
 	crossoverSlider_.setBounds(10, topSectionY_ + 15, 75, 75);
-	wetMixSlider_.setBounds(90, topSectionY_ + 15, 75, 75);
+	amountSlider_.setBounds(90, topSectionY_ + 15, 75, 75);
 	gainSlider_.setBounds(170, topSectionY_ + 15, 75, 75);
 	bypassButton_.setBounds(getWidth() - 90, getBottom() - 40, 80, 30);
 }
@@ -139,8 +139,8 @@ void HrtfBiAuralAudioProcessorEditor::sliderValueChanged(Slider* slider)
 	auto sliderName = slider->getName();
 	if (sliderName == crossoverSlider_.getName())
 		processor_.crossover_.set(processor_.crossover_.fs, slider->getValue());
-	else if (sliderName == wetMixSlider_.getName())
-		processor_.panAmount_ = wetMixSlider_.getValue() / 100;
+	else if (sliderName == amountSlider_.getName())
+		processor_.panAmount_ = amountSlider_.getValue() / 100;
 	else if (sliderName == gainSlider_.getName())
 		processor_.gain_ = Decibels::decibelsToGain(gainSlider_.getValue());
 }
