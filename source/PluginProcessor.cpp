@@ -147,16 +147,8 @@ void HrtfBiAuralAudioProcessor::releaseResources()
 
 void HrtfBiAuralAudioProcessor::processBlock(AudioSampleBuffer& buffer, MidiBuffer&)
 {
-	// get a pointer to the left channel data
-	auto in = buffer.getWritePointer(0);
-	auto bufferLength = buffer.getNumSamples();
-
 	if (bypassed_)
-	{
-		// just copy input from left channel to right
-		buffer.copyFrom(1, 0, in, bufferLength);
 		return;
-	}
 
 	if (crossfading_)
 	{
@@ -183,10 +175,23 @@ void HrtfBiAuralAudioProcessor::processBlock(AudioSampleBuffer& buffer, MidiBuff
 			crossfading_ = false;
 	}
 
+	// get a pointer to the left channel data
+	auto inL = buffer.getWritePointer(0);
+	auto inR = buffer.getWritePointer(1);
+	auto bufferLength = buffer.getNumSamples();
+
+	// downmix to mono in case of a stereo input
+	// by adding from the right channel to left channel
+	if (getNumInputChannels() == 2)
+	{
+		buffer.addFrom(0, 0, inR, bufferLength);
+		buffer.applyGain(0.5f);
+	}
+
 	// split the input signal into two bands, only freqs above crossover's f0
 	// will be spatialized
-	memcpy(loPassIn_.data(), in, bufferLength * sizeof(float));
-	memcpy(hiPassIn_.data(), in, bufferLength * sizeof(float));
+	memcpy(loPassIn_.data(), inL, bufferLength * sizeof(float));
+	memcpy(hiPassIn_.data(), inL, bufferLength * sizeof(float));
 	crossover_.loPass.processSamples(loPassIn_.data(), bufferLength);
 	crossover_.hiPass.processSamples(hiPassIn_.data(), bufferLength);
 
@@ -199,13 +204,13 @@ void HrtfBiAuralAudioProcessor::processBlock(AudioSampleBuffer& buffer, MidiBuff
 	filters_[1].process(buffers_[1].data());
 
 	// copy to output
-	auto outL = in;
+	auto outL = inL;
 	auto outR = buffer.getWritePointer(1);
 	float dryAmount = 1 - panAmount_;
 	float dry;
 	for (int i = 0; i < bufferLength; i++)
 	{
-		dry = in[i];
+		dry = inL[i];
 		outL[i] = panAmount_ * (loPassIn_[i] + buffers_[0][i]) + dryAmount * dry;
 		outR[i] = panAmount_ * (loPassIn_[i] + buffers_[1][i]) + dryAmount * dry;
 	}
