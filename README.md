@@ -6,3 +6,6 @@ Created with [JUCE](http://www.juce.com/) framework.
 
 ## Install:
 Copy the contents of the 'build' folder to your VST directory. You can remove unwanted vst3 or 32/64 versions.
+
+## License:
+GPL (because JUCE is GPL)
