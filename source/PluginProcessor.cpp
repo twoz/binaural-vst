@@ -25,6 +25,8 @@ HrtfBiAuralAudioProcessor::HrtfBiAuralAudioProcessor()
 		bypassed_ = true;
 	}
 	hrtfContainer_.updateHRIR(0, 0);
+
+	setLatencySamples(HRIR_LENGTH  / 2); // "almost true" ofc...HRTF isn't really linear phase...
 }
 
 HrtfBiAuralAudioProcessor::~HrtfBiAuralAudioProcessor()
