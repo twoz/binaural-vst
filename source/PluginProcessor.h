@@ -80,7 +80,6 @@ private:
 	bool bypassed_;
 	bool hrirLoaded_;
 
-	SpinLock processLock_;
 
 	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(HrtfBiAuralAudioProcessor)
 };

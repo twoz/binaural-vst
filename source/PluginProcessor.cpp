@@ -154,8 +154,6 @@ void HrtfBiAuralAudioProcessor::processBlock(AudioSampleBuffer& buffer, MidiBuff
 
 	if (crossfading_)
 	{
-		SpinLock::ScopedLockType lock(processLock_);
-
 		auto& targetHrir = hrtfContainer_.hrir();
 		float diff[2], totalDiff = 0.f;
 		// linear interpolation, sample by sample
