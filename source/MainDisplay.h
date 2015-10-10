@@ -2,10 +2,11 @@
 #include <cmath>
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "Util.h"
-#include "PluginEditor.h"
 #include "images/head_top.h"
 #include "images/source_icon.h"
 
+
+class HrtfBiAuralAudioProcessorEditor;
 
 class MainDisplay :
 	public Component,

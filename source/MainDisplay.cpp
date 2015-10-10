@@ -1,4 +1,5 @@
 #include "MainDisplay.h"
+#include "PluginEditor.h"
 
 
 MainDisplay::MainDisplay(HrtfBiAuralAudioProcessorEditor* editor)
