@@ -1,18 +1,28 @@
 #pragma once
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
+#include "AudioParameter.h"
 
 
 HrtfBiAuralAudioProcessor::HrtfBiAuralAudioProcessor()
-	:
-	currentHrir_(),
-	crossfadeRate(0.2f),
-	panAmount_(1.f),
-	gain_(1.f),
-	crossfading_(true),
-	bypassed_(false)
+	: currentHrir_()
+	, crossfadeRate(0.2f)
+	, crossoverFreq_(new AudioParameter("CROSS FREQ", "Hz", 20, 2000, 150))
+	, wetPercent_(new AudioParameter("Wet", "%", 0, 100, 100))
+	, gainDb_(new AudioParameter("Gain", "dB", -15, 15, 0))
+	, crossfading_(true)
+	, bypassed_(false)
 {
-	crossover_.set(44100, crossover_.f0);
+
+	// register parameters
+	addParameter(crossoverFreq_);
+	addParameter(wetPercent_);
+	addParameter(gainDb_);
+
+	// initialize crossover
+	onAudioParameterChanged(crossoverFreq_);
+
+	// load HRIR
 	auto thisDir = File::getSpecialLocation(File::currentExecutableFile).getParentDirectory();
 	try
 	{
@@ -26,6 +36,7 @@ HrtfBiAuralAudioProcessor::HrtfBiAuralAudioProcessor()
 	}
 	hrtfContainer_.updateHRIR(0, 0);
 
+
 	setLatencySamples(HRIR_LENGTH  / 2); // "almost true" ofc...HRTF isn't really linear phase...
 }
 
@@ -35,30 +46,6 @@ HrtfBiAuralAudioProcessor::~HrtfBiAuralAudioProcessor()
 const String HrtfBiAuralAudioProcessor::getName() const
 {
 	return JucePlugin_Name;
-}
-
-int HrtfBiAuralAudioProcessor::getNumParameters()
-{
-	return 0;
-}
-
-float HrtfBiAuralAudioProcessor::getParameter(int)
-{
-	return 0.0f;
-}
-
-void HrtfBiAuralAudioProcessor::setParameter(int, float)
-{
-}
-
-const String HrtfBiAuralAudioProcessor::getParameterName(int)
-{
-	return String();
-}
-
-const String HrtfBiAuralAudioProcessor::getParameterText(int)
-{
-	return String();
 }
 
 const String HrtfBiAuralAudioProcessor::getInputChannelName(int channelIndex) const
@@ -206,15 +193,20 @@ void HrtfBiAuralAudioProcessor::processBlock(AudioSampleBuffer& buffer, MidiBuff
 	// copy to output
 	auto outL = inL;
 	auto outR = buffer.getWritePointer(1);
-	float dryAmount = 1 - panAmount_;
-	float dry;
+
+	// fill stereo output
+	const auto wet = wetPercent_->value() / 100;
+	const auto dry = 1 - wet;
+	float monoIn;
 	for (int i = 0; i < bufferLength; i++)
 	{
-		dry = inL[i];
-		outL[i] = panAmount_ * (loPassIn_[i] + buffers_[0][i]) + dryAmount * dry;
-		outR[i] = panAmount_ * (loPassIn_[i] + buffers_[1][i]) + dryAmount * dry;
+		monoIn = inL[i];
+		outL[i] = wet * (loPassIn_[i] + buffers_[0][i]) + dry * monoIn;
+		outR[i] = wet * (loPassIn_[i] + buffers_[1][i]) + dry * monoIn;
 	}
-	buffer.applyGain(gain_);
+
+	// apply output gain
+	buffer.applyGain(Decibels::decibelsToGain(gainDb_->value()));
 }
 
 bool HrtfBiAuralAudioProcessor::hasEditor() const
@@ -259,4 +251,30 @@ void HrtfBiAuralAudioProcessor::reset()
 	filters_[0].reset();
 	filters_[1].reset();
 	crossfading_ = true;
+}
+
+void HrtfBiAuralAudioProcessor::onAudioParameterChanged(AudioParameter* parameter)
+{
+	if (parameter == crossoverFreq_)
+		crossover_.set(crossover_.fs, parameter->value());
+}
+
+bool HrtfBiAuralAudioProcessor::isHRIRLoaded() const
+{
+	return hrirLoaded_;
+}
+
+AudioParameter* HrtfBiAuralAudioProcessor::getCrossoverFrequencyParameter() const
+{
+	return crossoverFreq_;
+}
+
+AudioParameter* HrtfBiAuralAudioProcessor::getWetParameter() const
+{
+	return wetPercent_;
+}
+
+AudioParameter* HrtfBiAuralAudioProcessor::getGainParameter() const
+{
+	return gainDb_;
 }

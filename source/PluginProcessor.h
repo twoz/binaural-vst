@@ -4,14 +4,16 @@
 #include "FIRFilter.h"
 
 
+class AudioParameter;
+
 class HrtfBiAuralAudioProcessor :
 	public AudioProcessor
 {
-	friend class HrtfBiAuralAudioProcessorEditor;
 public:
 	HrtfBiAuralAudioProcessor();
 	~HrtfBiAuralAudioProcessor();
 
+public: // AudioProcessor implementation
 	void prepareToPlay(double sampleRate, int samplesPerBlock) override;
 	void releaseResources() override;
 
@@ -21,13 +23,6 @@ public:
 	bool hasEditor() const override;
 
 	const String getName() const override;
-
-	int getNumParameters() override;
-	float getParameter(int index) override;
-	void setParameter(int index, float newValue) override;
-
-	const String getParameterName(int index) override;
-	const String getParameterText(int index) override;
 
 	const String getInputChannelName(int channelIndex) const override;
 	const String getOutputChannelName(int channelIndex) const override;
@@ -48,9 +43,17 @@ public:
 	void getStateInformation(MemoryBlock& destData) override;
 	void setStateInformation(const void* data, int sizeInBytes) override;
 
+public:
 	void updateHRTF(double, double);
 	void toggleBypass(bool bypass);
 	void reset();
+	void onAudioParameterChanged(AudioParameter* parameter);
+
+	bool isHRIRLoaded() const;
+
+	AudioParameter* getCrossoverFrequencyParameter() const;
+	AudioParameter* getWetParameter() const;
+	AudioParameter* getGainParameter() const;
 
 private:
 	struct Crossover
@@ -74,11 +77,14 @@ private:
 	std::vector<float> hiPassIn_;
 	std::vector<float> buffers_[2];
 	float crossfadeRate;
-	float panAmount_;
-	float gain_;
+	
 	bool crossfading_;
 	bool bypassed_;
 	bool hrirLoaded_;
+
+	AudioParameter* crossoverFreq_;
+	AudioParameter* wetPercent_;
+	AudioParameter* gainDb_;
 
 
 	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(HrtfBiAuralAudioProcessor)
