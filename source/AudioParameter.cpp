@@ -2,24 +2,24 @@
 #include "Util.h"
 
 
-AudioParameter::AudioParameter(String name, String label, float minFreqHz, float maxFreqHz, float defaultFreqHz)
+AudioParameter::AudioParameter(String name, String label, float minValue, float maxValue, float defaultValue)
 	: name_(name)
 	, label_(label)
-	, value_(defaultFreqHz)
-	, minValue_(minFreqHz)
-	, maxValue_(maxFreqHz)
-	, defaultValue_(defaultFreqHz)
+	, minValue_(minValue)
+	, maxValue_(maxValue)
+	, defaultValue_(defaultValue)
 {
+	valueNormalized_ = mapToRange(defaultValue, minValue, maxValue, 0.f, 1.f);
 }
 
 float AudioParameter::getValue() const
 {
-	return mapToRange(value_.load(), minValue_, maxValue_, 0.f, 1.f);
+	return valueNormalized_;
 }
 
-void AudioParameter::setValue(float newValue)
+void AudioParameter::setValue(float newValueNormalized)
 {
-	value_.store(mapToRange(newValue, 0.f, 1.0f, minValue_, maxValue_));
+	valueNormalized_.store(newValueNormalized);
 }
 
 float AudioParameter::getDefaultValue() const
@@ -42,14 +42,14 @@ float AudioParameter::getValueForText(const String& text) const
 	return mapToRange(text.getFloatValue(), minValue_, maxValue_, 0.f, 1.f);
 }
 
-void AudioParameter::setValueTo(float newFreqHz)
+void AudioParameter::setValueAndNotifyHost(float newValue)
 {
-	value_.store(newFreqHz);
+	setValueNotifyingHost(mapToRange(newValue, minValue_, maxValue_, 0.f, 1.f));
 }
 
 float AudioParameter::value() const
 {
-	return value_.load();
+	return mapToRange(valueNormalized_.load(), 0.f, 1.f, minValue_, maxValue_);
 }
 
 float AudioParameter::minValue() const
@@ -60,4 +60,9 @@ float AudioParameter::minValue() const
 float AudioParameter::maxValue() const
 {
 	return maxValue_;
+}
+
+float AudioParameter::defaultValue() const
+{
+	return defaultValue_;
 }
