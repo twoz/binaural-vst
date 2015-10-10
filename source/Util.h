@@ -6,7 +6,7 @@
 template <typename T>
 using ComplexVector = std::vector<std::complex<T>>;
 
-const double Pi = 3.1415926535897932384626433832795;
+const float Pi = 3.14159265358f;
 
 inline bool isPowerOf2(size_t val)
 {
@@ -95,5 +95,5 @@ inline Point3DoublePolar<Type> sphericalToInteraural(const Point3DoublePolar<Typ
 	Type y = p.radius * std::cos(p.elevation) * std::cos(p.azimuth);
 	Type z = p.radius * std::sin(p.elevation);
 
-	return cartesianToInteraural(Point3Cartesian < double > {x, y, z});
+	return cartesianToInteraural(Point3Cartesian < Type > {x, y, z});
 }

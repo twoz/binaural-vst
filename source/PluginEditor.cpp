@@ -36,7 +36,7 @@ HrtfBiAuralAudioProcessorEditor::HrtfBiAuralAudioProcessorEditor(HrtfBiAuralAudi
 		knob->setColour(Slider::textBoxBackgroundColourId, Colours::black);
 		knob->setColour(Slider::textBoxTextColourId, Colours::white);
 		knob->setColour(Slider::textBoxOutlineColourId, Colours::black);
-		knob->setRotaryParameters(10 / 8. * Pi, 22 / 8. * Pi, true);
+		knob->setRotaryParameters(10 / 8.f * Pi, 22 / 8.f * Pi, true);
 		knob->setTextBoxStyle(Slider::TextBoxBelow, true, 70, 15);
 		knob->addListener(this);
 		addAndMakeVisible(knob);
@@ -87,7 +87,7 @@ void HrtfBiAuralAudioProcessorEditor::paintOverChildren(Graphics& g)
 	{
 		FillType fill;
 		fill.setColour(Colours::black);
-		fill.setOpacity(0.7);
+		fill.setOpacity(0.7f);
 		g.setFillType(fill);
 		g.fillRect(getBounds());
 		g.setColour(Colours::whitesmoke);
@@ -136,7 +136,7 @@ void HrtfBiAuralAudioProcessorEditor::sliderDragStarted(Slider* slider)
 void HrtfBiAuralAudioProcessorEditor::sliderValueChanged(Slider* slider)
 {
 	auto& changedParam = knobToParam_.at(slider);
-	changedParam->setValueAndNotifyHost(slider->getValue());
+	changedParam->setValueAndNotifyHost(static_cast<float>(slider->getValue()));
 	processor_.onAudioParameterChanged(changedParam);
 }
 

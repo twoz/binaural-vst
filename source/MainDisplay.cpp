@@ -23,7 +23,7 @@ void MainDisplay::paint(Graphics& g)
 	g.setColour(Colours::black);
 	auto w = getWidth();
 	auto h = getHeight();
-	g.fillEllipse(0, 0, w, h);
+	g.fillEllipse(0.f, 0.f, static_cast<float>(w), static_cast<float>(h));
 
 	if (sourcePos_.elevation < 0)
 		drawSource(g);
@@ -45,7 +45,7 @@ void MainDisplay::mouseDrag(const MouseEvent& event)
 
 void MainDisplay::sliderValueChanged(Slider* slider)
 {
-	sourcePos_.elevation = deg2rad(slider->getValue());
+	sourcePos_.elevation = static_cast<float>(deg2rad(slider->getValue()));
 	updateHRTF();
 }
 
@@ -53,10 +53,10 @@ void MainDisplay::drawGridLines(Graphics& g)
 {
 	g.setColour(Colours::white);
 	g.setOpacity(0.5f);
-	auto w = getWidth();
-	auto h = getHeight();
-	auto lineHorizontal = Line<float>(0, h * 0.5f, w, h * 0.5f);
-	auto lineVertical = Line<float>(w * 0.5f, 0, w * 0.5f, h);
+	auto w = static_cast<float>(getWidth());
+	auto h = static_cast<float>(getHeight());
+	auto lineHorizontal = Line<float>(0.f, h * 0.5f, w, h * 0.5f);
+	auto lineVertical = Line<float>(w * 0.5f, 0.f, w * 0.5f, h);
 	float dashes[] = {3, 2};
 	g.drawDashedLine(lineHorizontal, dashes, 2);
 	g.drawDashedLine(lineVertical, dashes, 2);
@@ -64,10 +64,9 @@ void MainDisplay::drawGridLines(Graphics& g)
 
 void MainDisplay::drawSource(Graphics& g)
 {
-	auto w = getWidth();
-	auto h = getHeight();
+	auto w = static_cast<float>(getWidth());
+	auto h = static_cast<float>(getHeight());
 	auto radius = w * 0.5f - 30;
-	auto scale = sourcePos_.elevation / 90.f;
 	auto x = radius * std::sin(sourcePos_.azimuth) * std::cos(sourcePos_.elevation);
 	auto y = radius * std::cos(sourcePos_.azimuth) * std::cos(sourcePos_.elevation);
 	x = w * 0.5f + x;
@@ -80,15 +79,15 @@ void MainDisplay::drawSource(Graphics& g)
 	}
 	ColourGradient grad(color, x, y, Colours::transparentBlack, x + w * 0.25f, y + h * 0.25f, true);
 	g.setGradientFill(grad);
-	g.fillEllipse(0, 0, w, h);
-	auto scaleFactor = 0.75 * (std::sin(sourcePos_.elevation) * 0.25 + 1);
+	g.fillEllipse(0.f, 0.f, w, h);
+	auto scaleFactor = 0.75f * (std::sin(sourcePos_.elevation) * 0.25f + 1);
 	auto sw = sourceImage_.getWidth();
 	auto sh = sourceImage_.getHeight();
 	g.drawImageWithin(sourceImage_,
-		x - sw * 0.5f * scaleFactor,
-		y - sh * 0.5f * scaleFactor,
-		sw * scaleFactor,
-		sh * scaleFactor,
+		static_cast<int>(x - sw * 0.5f * scaleFactor),
+		static_cast<int>(y - sh * 0.5f * scaleFactor),
+		static_cast<int>(sw * scaleFactor),
+		static_cast<int>(sh * scaleFactor),
 		RectanglePlacement::centred,
 		true);
 }

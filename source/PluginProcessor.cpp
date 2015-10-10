@@ -144,7 +144,7 @@ void HrtfBiAuralAudioProcessor::processBlock(AudioSampleBuffer& buffer, MidiBuff
 		auto& targetHrir = hrtfContainer_.hrir();
 		float diff[2], totalDiff = 0.f;
 		// linear interpolation, sample by sample
-		for (int i = 0; i < targetHrir[0].size(); ++i)
+		for (auto i = 0u; i < targetHrir[0].size(); ++i)
 		{
 			diff[0] = targetHrir[0][i] - currentHrir_[0][i];
 			diff[1] = targetHrir[1][i] - currentHrir_[1][i];

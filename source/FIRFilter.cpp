@@ -58,7 +58,7 @@ void FIRFilter::process(float* in)
 
 	// multiply and normalize
 	auto scale = 2.f / nfft_;
-	for (int i = 0; i < nfft_ / 2 + 1; ++i)
+	for (auto i = 0u; i < nfft_ / 2 + 1; ++i)
 		freqBuffer_[i] = scale * freqBuffer_[i] * H_[i];
 
 	// ifft of the product

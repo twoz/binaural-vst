@@ -4,8 +4,12 @@
 #include <memory>
 #include <map>
 #include "../JuceLibraryCode/JuceHeader.h"
-#include "triangle++/del_interface.hpp"
 
+
+// forward declaration
+namespace tpp {
+	class Delaunay;
+}
 
 #define HRIR_LENGTH 200
 using HrirBuffer = std::array < std::array<float, HRIR_LENGTH>, 2 >;

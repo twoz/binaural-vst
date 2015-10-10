@@ -27,7 +27,7 @@ private:
 
 	Image headImage_;
 	Image sourceImage_;
-	Point3DoublePolar<double> sourcePos_;
+	Point3DoublePolar<float> sourcePos_;
 	HrtfBiAuralAudioProcessorEditor* editor_;
 
 	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MainDisplay)

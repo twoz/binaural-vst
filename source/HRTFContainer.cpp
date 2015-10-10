@@ -1,3 +1,8 @@
+#pragma warning(push)
+#pragma warning(disable: 4244)
+#include <triangle++/del_interface.hpp>
+#pragma warning(pop)
+
 #include "HRTFContainer.h"
 
 
@@ -19,26 +24,26 @@ void HRTFContainer::updateHRIR(double azimuth, double elevation)
 	// Iterate through all the faces of the triangulation
 	for (auto fit = triangulation_->fbegin(); fit != triangulation_->fend(); ++fit)
 	{
-		auto vertexA = triangulation_->Org(fit);
-		auto vertexB = triangulation_->Dest(fit);
-		auto vertexC = triangulation_->Apex(fit);
-		auto A = triangulation_->point_at_vertex_id(vertexA);
-		auto B = triangulation_->point_at_vertex_id(vertexB);
-		auto C = triangulation_->point_at_vertex_id(vertexC);
+		const auto vertexA = triangulation_->Org(fit);
+		const auto vertexB = triangulation_->Dest(fit);
+		const auto vertexC = triangulation_->Apex(fit);
+		const auto A = triangulation_->point_at_vertex_id(vertexA);
+		const auto B = triangulation_->point_at_vertex_id(vertexB);
+		const auto C = triangulation_->point_at_vertex_id(vertexC);
 
-		double T[] = {A[0] - C[0], A[1] - C[1],
+		const double T[] = {A[0] - C[0], A[1] - C[1],
 			B[0] - C[0], B[1] - C[1]};
 		double invT[] = {T[3], -T[1], -T[2], T[0]};
-		auto det = 1 / (T[0] * T[3] - T[1] * T[2]);
-		for (int i = 0; i < 4; ++i)
+		const auto det = 1 / (T[0] * T[3] - T[1] * T[2]);
+		for (auto i = 0; i < 4; ++i)
 			invT[i] *= det;
 
-		double X[] = {azimuth - C[0], elevation - C[1]};
+		const double X[] = {azimuth - C[0], elevation - C[1]};
 
 		// Barycentric coordinates of point X
-		auto g1 = invT[0] * X[0] + invT[2] * X[1];
-		auto g2 = invT[1] * X[0] + invT[3] * X[1];
-		auto g3 = 1 - g1 - g2;
+		const auto g1 = static_cast<float>(invT[0] * X[0] + invT[2] * X[1]);
+		const auto g2 = static_cast<float>(invT[1] * X[0] + invT[3] * X[1]);
+		const auto g3 = 1 - g1 - g2;
 
 		// If any of the barycentric coordinate is negative, the point
 		// does not lay inside the triangle, so continue the loop.

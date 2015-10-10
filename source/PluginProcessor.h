@@ -60,9 +60,9 @@ private:
 	{
 		IIRFilter loPass;
 		IIRFilter hiPass;
-		float f0 = 150.f;
-		int fs = 44100;
-		void set(int fs, float f0)
+		double f0 = 150.;
+		double fs = 44100.;
+		void set(double fs, double f0)
 		{
 			loPass.setCoefficients(IIRCoefficients::makeLowPass(fs, f0));
 			hiPass.setCoefficients(IIRCoefficients::makeHighPass(fs, f0));
