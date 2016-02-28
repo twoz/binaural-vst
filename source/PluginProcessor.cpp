@@ -13,6 +13,7 @@ HrtfBiAuralAudioProcessor::HrtfBiAuralAudioProcessor()
 	, crossfading_(true)
 	, bypassed_(false)
 {
+	
 
 	// register parameters
 	addParameter(crossoverFreq_);
@@ -46,26 +47,6 @@ HrtfBiAuralAudioProcessor::~HrtfBiAuralAudioProcessor()
 const String HrtfBiAuralAudioProcessor::getName() const
 {
 	return JucePlugin_Name;
-}
-
-const String HrtfBiAuralAudioProcessor::getInputChannelName(int channelIndex) const
-{
-	return String(channelIndex + 1);
-}
-
-const String HrtfBiAuralAudioProcessor::getOutputChannelName(int channelIndex) const
-{
-	return String(channelIndex + 1);
-}
-
-bool HrtfBiAuralAudioProcessor::isInputChannelStereoPair(int) const
-{
-	return true;
-}
-
-bool HrtfBiAuralAudioProcessor::isOutputChannelStereoPair(int) const
-{
-	return true;
 }
 
 bool HrtfBiAuralAudioProcessor::acceptsMidi() const
@@ -169,7 +150,7 @@ void HrtfBiAuralAudioProcessor::processBlock(AudioSampleBuffer& buffer, MidiBuff
 
 	// downmix to mono in case of a stereo input
 	// by adding from the right channel to left channel
-	if (getNumInputChannels() == 2)
+	if (getTotalNumInputChannels() == 2)
 	{
 		buffer.addFrom(0, 0, inR, bufferLength);
 		buffer.applyGain(0.5f);

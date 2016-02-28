@@ -89,7 +89,7 @@ void AlertWindow::addButton (const String& name,
                              const KeyPress& shortcutKey1,
                              const KeyPress& shortcutKey2)
 {
-    TextButton* const b = new TextButton (name, String::empty);
+    TextButton* const b = new TextButton (name, String());
     buttons.add (b);
 
     b->setWantsKeyboardFocus (true);
@@ -143,9 +143,9 @@ void AlertWindow::addTextEditor (const String& name,
 
     ed->setColour (TextEditor::outlineColourId, findColour (ComboBox::outlineColourId));
     ed->setFont (getLookAndFeel().getAlertWindowMessageFont());
+    addAndMakeVisible (ed);
     ed->setText (initialContents);
     ed->setCaretPosition (initialContents.length());
-    addAndMakeVisible (ed);
     textboxNames.add (onScreenLabel);
 
     updateLayout (false);
@@ -165,7 +165,7 @@ String AlertWindow::getTextEditorContents (const String& nameOfTextEditor) const
     if (TextEditor* const t = getTextEditor (nameOfTextEditor))
         return t->getText();
 
-    return String::empty;
+    return String();
 }
 
 
@@ -197,11 +197,10 @@ ComboBox* AlertWindow::getComboBoxComponent (const String& nameOfList) const
 }
 
 //==============================================================================
-class AlertTextComp : public TextEditor
+class AlertTextComp  : public TextEditor
 {
 public:
-    AlertTextComp (const String& message,
-                   const Font& font)
+    AlertTextComp (AlertWindow& owner, const String& message, const Font& font)
     {
         setReadOnly (true);
         setMultiLine (true, true);
@@ -214,6 +213,9 @@ public:
         setText (message, false);
 
         bestWidth = 2 * (int) std::sqrt (font.getHeight() * font.getStringWidth (message));
+
+        if (owner.isColourSpecified (AlertWindow::textColourId))
+            setColour (TextEditor::textColourId, owner.findColour (AlertWindow::textColourId));
 
         setColour (TextEditor::backgroundColourId, Colours::transparentBlack);
         setColour (TextEditor::outlineColourId, Colours::transparentBlack);
@@ -241,7 +243,7 @@ private:
 
 void AlertWindow::addTextBlock (const String& textBlock)
 {
-    AlertTextComp* const c = new AlertTextComp (textBlock, getLookAndFeel().getAlertWindowMessageFont());
+    AlertTextComp* const c = new AlertTextComp (*this, textBlock, getLookAndFeel().getAlertWindowMessageFont());
     textBlocks.add (c);
     allComps.add (c);
 
@@ -343,9 +345,9 @@ void AlertWindow::updateLayout (const bool onlyIncreaseSize)
     const int titleH = 24;
     const int iconWidth = 80;
 
-    LookAndFeel& lookAndFeel = getLookAndFeel();
+    LookAndFeel& lf = getLookAndFeel();
 
-    const Font messageFont (lookAndFeel.getAlertWindowMessageFont());
+    const Font messageFont (lf.getAlertWindowMessageFont());
 
     const int wid = jmax (messageFont.getStringWidth (text),
                           messageFont.getStringWidth (getName()));
@@ -357,7 +359,7 @@ void AlertWindow::updateLayout (const bool onlyIncreaseSize)
     int iconSpace = 0;
 
     AttributedString attributedText;
-    attributedText.append (getName(), lookAndFeel.getAlertWindowTitleFont());
+    attributedText.append (getName(), lf.getAlertWindowTitleFont());
 
     if (text.isNotEmpty())
         attributedText.append ("\n\n" + text, messageFont);
@@ -428,18 +430,9 @@ void AlertWindow::updateLayout (const bool onlyIncreaseSize)
     }
 
     if (! isVisible())
-    {
         centreAroundComponent (associatedComponent, w, h);
-    }
     else
-    {
-        const int cx = getX() + getWidth() / 2;
-        const int cy = getY() + getHeight() / 2;
-
-        setBounds (cx - w / 2,
-                   cy - h / 2,
-                   w, h);
-    }
+        setBounds (getBounds().withSizeKeepingCentre (w, h));
 
     textArea.setBounds (edgeGap, edgeGap, w - (edgeGap * 2), h - edgeGap);
 

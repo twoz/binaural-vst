@@ -659,7 +659,7 @@ void UIViewComponentPeer::setFullScreen (bool shouldBeFullScreen)
 
         // (can't call the component's setBounds method because that'll reset our fullscreen flag)
         if (! r.isEmpty())
-            setBounds (r, shouldBeFullScreen);
+            setBounds (ScalingHelpers::scaledScreenPosToUnscaled (component, r), shouldBeFullScreen);
 
         component.repaint();
     }
@@ -700,8 +700,13 @@ void UIViewComponentPeer::updateTransformAndScreenBounds()
 
 bool UIViewComponentPeer::contains (Point<int> localPos, bool trueIfInAChildWindow) const
 {
-    if (! component.getLocalBounds().contains (localPos))
-        return false;
+    {
+        Rectangle<int> localBounds =
+            ScalingHelpers::scaledScreenPosToUnscaled (component, component.getLocalBounds());
+
+        if (! localBounds.contains (localPos))
+            return false;
+    }
 
     UIView* v = [view hitTest: convertToCGPoint (localPos)
                     withEvent: nil];
@@ -754,6 +759,16 @@ void UIViewComponentPeer::setIcon (const Image& /*newIcon*/)
 }
 
 //==============================================================================
+static float getMaximumTouchForce (UITouch* touch) noexcept
+{
+   #if defined (__IPHONE_9_0) && __IPHONE_OS_VERSION_MAX_ALLOWED >= __IPHONE_9_0
+    if ([touch respondsToSelector: @selector (maximumPossibleForce)])
+        return (float) touch.maximumPossibleForce;
+   #endif
+
+    return 0.0f;
+}
+
 void UIViewComponentPeer::handleTouches (UIEvent* event, const bool isDown, const bool isUp, bool isCancel)
 {
     NSArray* touches = [[event touchesForView: view] allObjects];
@@ -761,12 +776,13 @@ void UIViewComponentPeer::handleTouches (UIEvent* event, const bool isDown, cons
     for (unsigned int i = 0; i < [touches count]; ++i)
     {
         UITouch* touch = [touches objectAtIndex: i];
+        const float maximumForce = getMaximumTouchForce (touch);
 
-        if ([touch phase] == UITouchPhaseStationary)
+        if ([touch phase] == UITouchPhaseStationary && maximumForce <= 0)
             continue;
 
         CGPoint p = [touch locationInView: view];
-        const Point<float> pos (p.x, p.y);
+        const Point<float> pos (static_cast<float> (p.x), static_cast<float> (p.y));
         juce_lastMousePos = pos + getBounds (true).getPosition().toFloat();
 
         const int64 time = getMouseTime (event);
@@ -783,7 +799,9 @@ void UIViewComponentPeer::handleTouches (UIEvent* event, const bool isDown, cons
             modsToSend = currentModifiers;
 
             // this forces a mouse-enter/up event, in case for some reason we didn't get a mouse-up before.
-            handleMouseEvent (touchIndex, pos, modsToSend.withoutMouseButtons(), time);
+            handleMouseEvent (touchIndex, pos, modsToSend.withoutMouseButtons(),
+                              MouseInputSource::invalidPressure, time);
+
             if (! isValidPeer (this)) // (in case this component was deleted by the event)
                 return;
         }
@@ -805,13 +823,20 @@ void UIViewComponentPeer::handleTouches (UIEvent* event, const bool isDown, cons
             modsToSend = currentModifiers = currentModifiers.withoutMouseButtons();
         }
 
-        handleMouseEvent (touchIndex, pos, modsToSend, time);
+        // NB: some devices return 0 or 1.0 if pressure is unknown, so we'll clip our value to a believable range:
+        float pressure = maximumForce > 0 ? jlimit (0.0001f, 0.9999f, (float) (touch.force / maximumForce))
+                                          : MouseInputSource::invalidPressure;
+
+        handleMouseEvent (touchIndex, pos, modsToSend, pressure, time);
+
         if (! isValidPeer (this)) // (in case this component was deleted by the event)
             return;
 
         if (isUp || isCancel)
         {
-            handleMouseEvent (touchIndex, Point<float> (-1.0f, -1.0f), modsToSend, time);
+            handleMouseEvent (touchIndex, Point<float> (-1.0f, -1.0f),
+                              modsToSend, MouseInputSource::invalidPressure, time);
+
             if (! isValidPeer (this))
                 return;
         }
@@ -942,7 +967,7 @@ void UIViewComponentPeer::drawRect (CGRect r)
         CGContextClearRect (cg, CGContextGetClipBoundingBox (cg));
 
     CGContextConcatCTM (cg, CGAffineTransformMake (1, 0, 0, -1, 0, getComponent().getHeight()));
-    CoreGraphicsContext g (cg, getComponent().getHeight(), [UIScreen mainScreen].scale);
+    CoreGraphicsContext g (cg, getComponent().getHeight(), static_cast<float> ([UIScreen mainScreen].scale));
 
     insideDrawRect = true;
     handlePaint (g);

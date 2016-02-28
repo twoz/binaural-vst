@@ -107,8 +107,8 @@ public:
     const Colour textColour;
     const bool isActive, isSeparator, isTicked, usesColour;
     ScopedPointer<Drawable> iconDrawable;
-    ReferenceCountedObjectPtr <CustomComponent> customComp;
-    ScopedPointer <PopupMenu> subMenu;
+    ReferenceCountedObjectPtr<CustomComponent> customComp;
+    ScopedPointer<PopupMenu> subMenu;
     ApplicationCommandManager* const commandManager;
 
 private:
@@ -1328,7 +1328,8 @@ void PopupMenu::addItem (int itemResultID, const String& itemText, bool isActive
 
 void PopupMenu::addCommandItem (ApplicationCommandManager* commandManager,
                                 const CommandID commandID,
-                                const String& displayName)
+                                const String& displayName,
+                                Drawable* iconToUse)
 {
     jassert (commandManager != nullptr && commandID != 0);
 
@@ -1342,7 +1343,7 @@ void PopupMenu::addCommandItem (ApplicationCommandManager* commandManager,
                                                       : info.shortName,
                              target != nullptr && (info.flags & ApplicationCommandInfo::isDisabled) == 0,
                              (info.flags & ApplicationCommandInfo::isTicked) != 0,
-                             nullptr,
+                             iconToUse,
                              Colours::black,
                              false,
                              nullptr, nullptr,

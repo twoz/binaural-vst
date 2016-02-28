@@ -245,24 +245,26 @@ public:
         fullScreen = isNowFullScreen;
 
         NSRect r = makeNSRect (newBounds);
+        NSSize oldViewSize = [view frame].size;
 
         if (isSharedWindow)
         {
             r.origin.y = [[view superview] frame].size.height - (r.origin.y + r.size.height);
-
-            if ([view frame].size.width != r.size.width
-                 || [view frame].size.height != r.size.height)
-            {
-                [view setNeedsDisplay: true];
-            }
-
             [view setFrame: r];
         }
         else
         {
+            // Repaint behaviour of setFrame seemed to change in 10.11, and the drawing became synchronous,
+            // causing performance issues. But sending an async update causes flickering in older versions,
+            // hence this version check to use the old behaviour on pre 10.11 machines
+            static bool isPre10_11 = SystemStats::getOperatingSystemType() <= SystemStats::MacOSX_10_10;
+
             [window setFrame: [window frameRectForContentRect: flippedScreenRect (r)]
-                     display: true];
+                     display: isPre10_11];
         }
+
+        if (oldViewSize.width != r.size.width || oldViewSize.height != r.size.height)
+            [view setNeedsDisplay: true];
     }
 
     Rectangle<int> getBounds (const bool global) const
@@ -307,27 +309,10 @@ public:
 
     void setAlpha (float newAlpha) override
     {
-        if (! isSharedWindow)
-        {
-            [window setAlphaValue: (CGFloat) newAlpha];
-        }
-        else
-        {
-           #if defined (MAC_OS_X_VERSION_10_5) && MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_5
+        if (isSharedWindow)
             [view setAlphaValue: (CGFloat) newAlpha];
-           #else
-            if ([view respondsToSelector: @selector (setAlphaValue:)])
-            {
-                // PITA dynamic invocation for 10.4 builds..
-                NSInvocation* inv = [NSInvocation invocationWithMethodSignature: [view methodSignatureForSelector: @selector (setAlphaValue:)]];
-                [inv setSelector: @selector (setAlphaValue:)];
-                [inv setTarget: view];
-                CGFloat cgNewAlpha = (CGFloat) newAlpha;
-                [inv setArgument: &cgNewAlpha atIndex: 2];
-                [inv invoke];
-            }
-           #endif
-        }
+        else
+            [window setAlphaValue: (CGFloat) newAlpha];
     }
 
     void setMinimised (bool shouldBeMinimised) override
@@ -587,7 +572,8 @@ public:
             sendMouseEvent (ev);
         else
             // moved into another window which overlaps this one, so trigger an exit
-            handleMouseEvent (0, Point<float> (-1.0f, -1.0f), currentModifiers, getMouseTime (ev));
+            handleMouseEvent (0, Point<float> (-1.0f, -1.0f), currentModifiers,
+                              getMousePressure (ev), getMouseTime (ev));
 
         showArrowCursorIfNeeded();
     }
@@ -675,10 +661,15 @@ public:
         (void) ev;
     }
 
+    void redirectCopy  (NSObject*) { handleKeyPress (KeyPress ('c', ModifierKeys (ModifierKeys::commandModifier), 'c')); }
+    void redirectPaste (NSObject*) { handleKeyPress (KeyPress ('v', ModifierKeys (ModifierKeys::commandModifier), 'v')); }
+    void redirectCut   (NSObject*) { handleKeyPress (KeyPress ('x', ModifierKeys (ModifierKeys::commandModifier), 'x')); }
+
     void sendMouseEvent (NSEvent* ev)
     {
         updateModifiers (ev);
-        handleMouseEvent (0, getMousePos (ev, view), currentModifiers, getMouseTime (ev));
+        handleMouseEvent (0, getMousePos (ev, view), currentModifiers,
+                          getMousePressure (ev), getMouseTime (ev));
     }
 
     bool handleKeyEvent (NSEvent* ev, bool isKeyDown)
@@ -779,16 +770,6 @@ public:
         updateModifiers (ev);
         handleModifierKeysChange();
     }
-
-   #if MAC_OS_X_VERSION_MIN_REQUIRED < MAC_OS_X_VERSION_10_5
-    bool redirectPerformKeyEquivalent (NSEvent* ev)
-    {
-        if ([ev type] == NSKeyDown)   return redirectKeyDown (ev);
-        if ([ev type] == NSKeyUp)     return redirectKeyUp (ev);
-
-        return false;
-    }
-   #endif
 
     void drawRect (NSRect r)
     {
@@ -1007,7 +988,49 @@ public:
 
     static int getKeyCodeFromEvent (NSEvent* ev)
     {
-        const String unmodified (nsStringToJuce ([ev charactersIgnoringModifiers]));
+        // Unfortunately, charactersIgnoringModifiers does not ignore the shift key.
+        // Using [ev keyCode] is not a solution either as this will,
+        // for example, return VK_KEY_Y if the key is pressed which
+        // is typically located at the Y key position on a QWERTY
+        // keyboard. However, on international keyboards this might not
+        // be the key labeled Y (for example, on German keyboards this key
+        // has a Z label). Therefore, we need to query the current keyboard
+        // layout to figure out what character the key would have produced
+        // if the shift key was not pressed
+        String unmodified;
+
+       #if JUCE_SUPPORT_CARBON
+        if (TISInputSourceRef currentKeyboard = TISCopyCurrentKeyboardInputSource())
+        {
+            CFDataRef layoutData = (CFDataRef) TISGetInputSourceProperty (currentKeyboard,
+                                                                          kTISPropertyUnicodeKeyLayoutData);
+
+            if (layoutData != nullptr)
+            {
+                if (const UCKeyboardLayout* layoutPtr = (const UCKeyboardLayout*) CFDataGetBytePtr (layoutData))
+                {
+
+                    UInt32 keysDown = 0;
+                    UniChar buffer[4];
+                    UniCharCount actual;
+
+                    if (UCKeyTranslate (layoutPtr, [ev keyCode], kUCKeyActionDown, 0, LMGetKbdType(),
+                                        kUCKeyTranslateNoDeadKeysBit, &keysDown, sizeof (buffer) / sizeof (UniChar),
+                                        &actual, buffer) == 0)
+                        unmodified = String (CharPointer_UTF16 (reinterpret_cast<CharPointer_UTF16::CharType*> (buffer)), 4);
+                }
+            }
+
+            CFRelease (currentKeyboard);
+        }
+
+        // did the above layout conversion fail
+        if (unmodified.isEmpty())
+       #endif
+        {
+            unmodified = nsStringToJuce ([ev charactersIgnoringModifiers]);
+        }
+
         int keyCode = unmodified[0];
 
         if (keyCode == 0x19) // (backwards-tab)
@@ -1026,7 +1049,9 @@ public:
                                               '8', KeyPress::numberPad8, '9', KeyPress::numberPad9,
                                               '+', KeyPress::numberPadAdd, '-', KeyPress::numberPadSubtract,
                                               '*', KeyPress::numberPadMultiply, '/', KeyPress::numberPadDivide,
-                                              '.', KeyPress::numberPadDecimalPoint, '=', KeyPress::numberPadEquals };
+                                              '.', KeyPress::numberPadDecimalPoint,
+                                              ',', KeyPress::numberPadDecimalPoint, // (to deal with non-english kbds)
+                                              '=', KeyPress::numberPadEquals };
 
             for (int i = 0; i < numElementsInArray (numPadConversions); i += 2)
                 if (keyCode == numPadConversions [i])
@@ -1036,10 +1061,23 @@ public:
         return keyCode;
     }
 
-    static int64 getMouseTime (NSEvent* e)
+    static int64 getMouseTime (NSEvent* e) noexcept
     {
         return (Time::currentTimeMillis() - Time::getMillisecondCounter())
-                + (int64) ([e timestamp] * 1000.0);
+                 + (int64) ([e timestamp] * 1000.0);
+    }
+
+    static float getMousePressure (NSEvent* e) noexcept
+    {
+        @try
+        {
+            if (e.type != NSMouseEntered && e.type != NSMouseExited)
+                return (float) e.pressure;
+        }
+        @catch (NSException* e) {}
+        @finally {}
+
+        return 0.0f;
     }
 
     static Point<float> getMousePos (NSEvent* e, NSView* view)
@@ -1416,10 +1454,6 @@ struct JuceNSViewClass   : public ObjCClass <NSView>
         addMethod (@selector (resignFirstResponder),          resignFirstResponder,       "c@:");
         addMethod (@selector (acceptsFirstResponder),         acceptsFirstResponder,      "c@:");
 
-       #if MAC_OS_X_VERSION_MIN_REQUIRED < MAC_OS_X_VERSION_10_5
-        addMethod (@selector (performKeyEquivalent:),         performKeyEquivalent,       "c@:@");
-       #endif
-
         addMethod (@selector (draggingEntered:),              draggingEntered,            @encode (NSDragOperation), "@:@");
         addMethod (@selector (draggingUpdated:),              draggingUpdated,            @encode (NSDragOperation), "@:@");
         addMethod (@selector (draggingEnded:),                draggingEnded,              "v@:@");
@@ -1427,6 +1461,10 @@ struct JuceNSViewClass   : public ObjCClass <NSView>
         addMethod (@selector (prepareForDragOperation:),      prepareForDragOperation,    "c@:@");
         addMethod (@selector (performDragOperation:),         performDragOperation,       "c@:@");
         addMethod (@selector (concludeDragOperation:),        concludeDragOperation,      "v@:@");
+
+        addMethod (@selector (paste:),                        paste,                      "v@:@");
+        addMethod (@selector (copy:),                         copy,                       "v@:@");
+        addMethod (@selector (cut:),                          cut,                        "v@:@");
 
         addProtocol (@protocol (NSTextInput));
 
@@ -1473,6 +1511,9 @@ private:
     static void mouseExited    (id self, SEL, NSEvent* ev)   { if (NSViewComponentPeer* const p = getOwner (self)) p->redirectMouseExit  (ev); }
     static void scrollWheel    (id self, SEL, NSEvent* ev)   { if (NSViewComponentPeer* const p = getOwner (self)) p->redirectMouseWheel (ev); }
     static void magnify        (id self, SEL, NSEvent* ev)   { if (NSViewComponentPeer* const p = getOwner (self)) p->redirectMagnify    (ev); }
+    static void copy           (id self, SEL, NSObject* s)   { if (NSViewComponentPeer* const p = getOwner (self)) p->redirectCopy       (s);  }
+    static void paste          (id self, SEL, NSObject* s)   { if (NSViewComponentPeer* const p = getOwner (self)) p->redirectPaste      (s);  }
+    static void cut            (id self, SEL, NSObject* s)   { if (NSViewComponentPeer* const p = getOwner (self)) p->redirectCut        (s);  }
 
     static BOOL acceptsFirstMouse (id, SEL, NSEvent*)        { return YES; }
 
@@ -1646,18 +1687,6 @@ private:
         if (NSViewComponentPeer* const owner = getOwner (self))
             owner->redirectModKeyChange (ev);
     }
-
-    #if MAC_OS_X_VERSION_MIN_REQUIRED < MAC_OS_X_VERSION_10_5
-    static BOOL performKeyEquivalent (id self, SEL, NSEvent* ev)
-    {
-        if (NSViewComponentPeer* const owner = getOwner (self))
-            if (owner->redirectPerformKeyEquivalent (ev))
-                return true;
-
-        objc_super s = { self, [NSView class] };
-        return getMsgSendSuperFn() (&s, @selector (performKeyEquivalent:), ev) != nil;
-    }
-    #endif
 
     static BOOL becomeFirstResponder (id self, SEL)
     {

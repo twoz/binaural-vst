@@ -110,7 +110,7 @@ void Thread::launchThread()
 {
     unsigned int newThreadId;
     threadHandle = (void*) _beginthreadex (0, 0, &threadEntryProc, this, 0, &newThreadId);
-    threadId = (ThreadID) newThreadId;
+    threadId = (ThreadID) (pointer_sized_int) newThreadId;
 }
 
 void Thread::closeThreadHandle()
@@ -457,11 +457,11 @@ public:
             STARTUPINFOW startupInfo = { 0 };
             startupInfo.cb = sizeof (startupInfo);
 
-            startupInfo.hStdOutput = (streamFlags | wantStdOut) != 0 ? writePipe : 0;
-            startupInfo.hStdError  = (streamFlags | wantStdErr) != 0 ? writePipe : 0;
+            startupInfo.hStdOutput = (streamFlags & wantStdOut) != 0 ? writePipe : 0;
+            startupInfo.hStdError  = (streamFlags & wantStdErr) != 0 ? writePipe : 0;
             startupInfo.dwFlags = STARTF_USESTDHANDLES;
 
-            ok = CreateProcess (nullptr, const_cast <LPWSTR> (command.toWideCharPointer()),
+            ok = CreateProcess (nullptr, const_cast<LPWSTR> (command.toWideCharPointer()),
                                 nullptr, nullptr, TRUE, CREATE_NO_WINDOW | CREATE_UNICODE_ENVIRONMENT,
                                 nullptr, nullptr, &startupInfo, &processInfo) != FALSE;
         }

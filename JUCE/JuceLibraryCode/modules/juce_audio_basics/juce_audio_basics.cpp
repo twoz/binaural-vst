@@ -40,6 +40,10 @@
  #define JUCE_USE_SSE_INTRINSICS 0
 #endif
 
+#if JUCE_MINGW
+ #define alloca __builtin_alloca
+#endif
+
 #ifndef JUCE_USE_SSE_INTRINSICS
  #define JUCE_USE_SSE_INTRINSICS 1
 #endif
@@ -76,7 +80,6 @@ namespace juce
 {
 
 #include "buffers/juce_AudioDataConverters.cpp"
-#include "buffers/juce_AudioSampleBuffer.cpp"
 #include "buffers/juce_FloatVectorOperations.cpp"
 #include "effects/juce_IIRFilter.cpp"
 #include "effects/juce_LagrangeInterpolator.cpp"
@@ -86,6 +89,16 @@ namespace juce
 #include "midi/juce_MidiKeyboardState.cpp"
 #include "midi/juce_MidiMessage.cpp"
 #include "midi/juce_MidiMessageSequence.cpp"
+#include "midi/juce_MidiRPN.cpp"
+#include "mpe/juce_MPEValue.cpp"
+#include "mpe/juce_MPENote.cpp"
+#include "mpe/juce_MPEZone.cpp"
+#include "mpe/juce_MPEZoneLayout.cpp"
+#include "mpe/juce_MPEInstrument.cpp"
+#include "mpe/juce_MPEMessages.cpp"
+#include "mpe/juce_MPESynthesiserBase.cpp"
+#include "mpe/juce_MPESynthesiserVoice.cpp"
+#include "mpe/juce_MPESynthesiser.cpp"
 #include "sources/juce_BufferingAudioSource.cpp"
 #include "sources/juce_ChannelRemappingAudioSource.cpp"
 #include "sources/juce_IIRFilterAudioSource.cpp"

@@ -309,7 +309,7 @@ TextEditor* Label::createEditorComponent()
 
     copyColourIfSpecified (*this, *ed, textWhenEditingColourId, TextEditor::textColourId);
     copyColourIfSpecified (*this, *ed, backgroundWhenEditingColourId, TextEditor::backgroundColourId);
-    copyColourIfSpecified (*this, *ed, outlineWhenEditingColourId, TextEditor::outlineColourId);
+    copyColourIfSpecified (*this, *ed, outlineWhenEditingColourId, TextEditor::focusedOutlineColourId);
 
     return ed;
 }
@@ -391,7 +391,7 @@ public:
 
     static Component* getComp (Component* current)
     {
-        return dynamic_cast <TextEditor*> (current) != nullptr
+        return dynamic_cast<TextEditor*> (current) != nullptr
                  ? current->getParentComponent() : current;
     }
 };
