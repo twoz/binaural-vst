@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2015 - ROLI Ltd.
+   Copyright (c) 2016 - ROLI Ltd.
 
    Permission is granted to use this software under the terms of either:
    a) the GPL v2 (or any later version)
@@ -22,5 +22,20 @@
   ==============================================================================
 */
 
-#define JUCE_INCLUDED_AAX_IN_MM 1
-#include "juce_AAX_Wrapper.cpp"
+#ifndef JUCE_AAX_MODIFIER_INJECTOR_H_INCLUDED
+#define JUCE_AAX_MODIFIER_INJECTOR_H_INCLUDED
+
+struct ModifierKeyProvider
+{
+    virtual ~ModifierKeyProvider() {}
+    virtual int getWin32Modifiers() const = 0;
+};
+
+struct ModifierKeyReceiver
+{
+    virtual ~ModifierKeyReceiver() {}
+    virtual void setModifierKeyProvider (ModifierKeyProvider* provider) = 0;
+    virtual void removeModifierKeyProvider () = 0;
+};
+
+#endif

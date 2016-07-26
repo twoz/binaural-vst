@@ -8,8 +8,8 @@
               pluginIsSynth="0" pluginWantsMidiIn="0" pluginProducesMidiOut="0"
               pluginSilenceInIsSilenceOut="0" pluginEditorRequiresKeys="0"
               pluginAUExportPrefix="HrtfBiAuralAU" pluginRTASCategory="" aaxIdentifier="com.yourcompany.HrtfBiAural"
-              pluginAAXCategory="AAX_ePlugInCategory_Dynamics" jucerVersion="4.1.0"
-              pluginIsMidiEffectPlugin="0">
+              pluginAAXCategory="AAX_ePlugInCategory_Dynamics" jucerVersion="4.2.3"
+              pluginIsMidiEffectPlugin="0" buildAUv3="0">
   <MAINGROUP id="ThT6AB" name="binaural-vst">
     <GROUP id="{692C8829-98B7-F217-6C73-4EA83692BB6A}" name="source">
       <FILE id="OQ0d3J" name="AudioParameter.cpp" compile="1" resource="0"

@@ -26,10 +26,16 @@
 // define all your plugin settings properly..
 
 #if ! (JucePlugin_Build_VST || JucePlugin_Build_VST3 \
-        || JucePlugin_Build_AU || JucePlugin_Build_RTAS || JucePlugin_Build_AAX \
+        || JucePlugin_Build_AU || JucePlugin_Build_AUv3 \
+        ||JucePlugin_Build_RTAS || JucePlugin_Build_AAX \
         || JucePlugin_Build_Standalone || JucePlugin_Build_LV2)
  #error "You need to enable at least one plugin format!"
 #endif
+
+#ifdef JUCE_CHECKSETTINGMACROS_H
+ #error "This header should never be included twice! Otherwise something is wrong."
+#endif
+#define JUCE_CHECKSETTINGMACROS_H
 
 #ifndef JucePlugin_IsSynth
  #error "You need to define the JucePlugin_IsSynth value!"
@@ -53,10 +59,6 @@
 
 #ifdef JucePlugin_Latency
  #error "JucePlugin_Latency is now deprecated - instead, call the AudioProcessor::setLatencySamples() method if your plugin has a non-zero delay"
-#endif
-
-#ifndef JucePlugin_SilenceInProducesSilenceOut
- #error "You need to define the JucePlugin_SilenceInProducesSilenceOut value!"
 #endif
 
 #ifndef JucePlugin_EditorRequiresKeyboardFocus
