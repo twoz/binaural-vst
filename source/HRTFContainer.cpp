@@ -20,7 +20,7 @@ void HRTFContainer::updateHRIR(double azimuth, double elevation)
 
 	const auto& triangles = triangulation_->getTriangles();
 	// Iterate through all the faces of the triangulation
-	for (auto& triangle : triangles)
+ 	for (auto& triangle : triangles)
 	{
 		const auto A = triangle.p1;
 		const auto B = triangle.p2;
@@ -28,10 +28,10 @@ void HRTFContainer::updateHRIR(double azimuth, double elevation)
 
 		const double T[] = {A.x - C.x, A.y - C.y, B.x - C.x, B.y - C.y};
 		double invT[] = {T[3], -T[1], -T[2], T[0]};
-		const auto det = 1 / (T[0] * T[3] - T[1] * T[2]);
+		const auto det = T[0] * T[3] - T[1] * T[2];
+		jassert(det != 0 && "Bad triangulation!");
 		for (auto i = 0; i < 4; ++i)
-			invT[i] *= det;
-
+			invT[i] /= det;
 		const double X[] = {azimuth - C.x, elevation - C.y};
 
 		// Barycentric coordinates of point X
