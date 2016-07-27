@@ -1,8 +1,5 @@
 #pragma warning(push)
-#pragma warning(disable: 4244)
-#include <triangle++/del_interface.hpp>
-#pragma warning(pop)
-
+#include "delaunay/delaunay.h"
 #include "HRTFContainer.h"
 
 
@@ -18,27 +15,24 @@ HRTFContainer::~HRTFContainer()
 
 void HRTFContainer::updateHRIR(double azimuth, double elevation)
 {
-	if (triangulation_ == nullptr)
+	if (!triangulation_)
 		return;
 
+	const auto& triangles = triangulation_->getTriangles();
 	// Iterate through all the faces of the triangulation
-	for (auto fit = triangulation_->fbegin(); fit != triangulation_->fend(); ++fit)
+	for (auto& triangle : triangles)
 	{
-		const auto vertexA = triangulation_->Org(fit);
-		const auto vertexB = triangulation_->Dest(fit);
-		const auto vertexC = triangulation_->Apex(fit);
-		const auto A = triangulation_->point_at_vertex_id(vertexA);
-		const auto B = triangulation_->point_at_vertex_id(vertexB);
-		const auto C = triangulation_->point_at_vertex_id(vertexC);
+		const auto A = triangle.p1;
+		const auto B = triangle.p2;
+		const auto C = triangle.p3;
 
-		const double T[] = {A[0] - C[0], A[1] - C[1],
-			B[0] - C[0], B[1] - C[1]};
+		const double T[] = {A.x - C.x, A.y - C.y, B.x - C.x, B.y - C.y};
 		double invT[] = {T[3], -T[1], -T[2], T[0]};
 		const auto det = 1 / (T[0] * T[3] - T[1] * T[2]);
 		for (auto i = 0; i < 4; ++i)
 			invT[i] *= det;
 
-		const double X[] = {azimuth - C[0], elevation - C[1]};
+		const double X[] = {azimuth - C.x, elevation - C.y};
 
 		// Barycentric coordinates of point X
 		const auto g1 = static_cast<float>(invT[0] * X[0] + invT[2] * X[1]);
@@ -51,9 +45,9 @@ void HRTFContainer::updateHRIR(double azimuth, double elevation)
 			continue;
 		else
 		{
-			auto& irA = hrirDict_[(int)A[0]][getElvIndex(std::lround(A[1]))];
-			auto& irB = hrirDict_[(int)B[0]][getElvIndex(std::lround(B[1]))];
-			auto& irC = hrirDict_[(int)C[0]][getElvIndex(std::lround(C[1]))];
+			auto& irA = hrirDict_[static_cast<int>(A.x)][getElvIndex(std::lround(A.y))];
+			auto& irB = hrirDict_[static_cast<int>(B.x)][getElvIndex(std::lround(B.y))];
+			auto& irC = hrirDict_[static_cast<int>(C.x)][getElvIndex(std::lround(C.y))];
 			// Fill HRIR array and return
 			for (size_t i = 0; i < hrir_[0].size(); ++i)
 			{
@@ -63,8 +57,6 @@ void HRTFContainer::updateHRIR(double azimuth, double elevation)
 			return;
 		}
 	}
-	// If the query point was not found , return zero-ed impulse response
-	return;
 }
 
 const HrirBuffer& HRTFContainer::hrir() const
@@ -77,31 +69,30 @@ void HRTFContainer::loadHrir(String filename)
 	FileInputStream istream(filename);
 	if (istream.openedOk())
 	{
-		std::vector<tpp::Delaunay::Point> points;
+		std::vector<Vec2f> points;
 		int azimuths[] = {-90, -80, -65, -55, -45, -40, -35, -30, -25, -20,
 			-15, -10, -5, 0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 55, 65, 80, 90};
-		for (auto azm : azimuths)
+		for (auto& azm : azimuths)
 		{
-
 			hrirDict_.insert(std::make_pair(azm, std::array<HrirBuffer, 52>()));
 			// -90 deg
 			istream.read(hrirDict_[azm][0][0].data(), 200 * sizeof(float));
 			istream.read(hrirDict_[azm][0][1].data(), 200 * sizeof(float));
-			points.push_back(tpp::Delaunay::Point(azm, -90));
+			points.push_back({static_cast<float>(azm), -90.f});
 			// 50 elevations
 			for (int i = 1; i < 51; ++i)
 			{
 				istream.read(hrirDict_[azm][i][0].data(), 200 * sizeof(float));
 				istream.read(hrirDict_[azm][i][1].data(), 200 * sizeof(float));
-				points.push_back(tpp::Delaunay::Point(azm, -45 + 5.625 * (i - 1)));
+				points.push_back({static_cast<float>(azm), -45.f + 5.625f * (i - 1)});
 			}
 			// 270 deg
 			istream.read(hrirDict_[azm][51][0].data(), 200 * sizeof(float));
 			istream.read(hrirDict_[azm][51][1].data(), 200 * sizeof(float));
-			points.push_back(tpp::Delaunay::Point(azm, 270));
+			points.push_back({static_cast<float>(azm), 270});
 		}
-		triangulation_ = new tpp::Delaunay(points);
-		triangulation_->Triangulate();
+		triangulation_ = new Delaunay();
+		triangulation_->triangulate(points);
 	}
 	else
 		throw std::ios_base::failure("Failed to open HRIR file");

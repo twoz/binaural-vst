@@ -4,7 +4,7 @@
               bundleIdentifier="com.yourcompany.binauralvst" includeBinaryInAppConfig="1"
               buildVST="1" buildVST3="0" buildAU="0" buildRTAS="0" buildAAX="0"
               pluginName="BinAuralVST" pluginDesc="BinAuralVST" pluginManufacturer="TWoz"
-              pluginManufacturerCode="TWoz" pluginCode="BiAu" pluginChannelConfigs=""
+              pluginManufacturerCode="TWoz" pluginCode="BiAu" pluginChannelConfigs="{1,2},{2,2}"
               pluginIsSynth="0" pluginWantsMidiIn="0" pluginProducesMidiOut="0"
               pluginSilenceInIsSilenceOut="0" pluginEditorRequiresKeys="0"
               pluginAUExportPrefix="HrtfBiAuralAU" pluginRTASCategory="" aaxIdentifier="com.yourcompany.HrtfBiAural"
@@ -12,6 +12,14 @@
               pluginIsMidiEffectPlugin="0" buildAUv3="0">
   <MAINGROUP id="ThT6AB" name="binaural-vst">
     <GROUP id="{692C8829-98B7-F217-6C73-4EA83692BB6A}" name="source">
+      <GROUP id="{AEFA7BDD-9C72-E415-684B-6AE1771F871B}" name="delaunay">
+        <FILE id="AboDIL" name="delaunay.cpp" compile="1" resource="0" file="../source/delaunay/delaunay.cpp"/>
+        <FILE id="ibuOeA" name="delaunay.h" compile="0" resource="0" file="../source/delaunay/delaunay.h"/>
+        <FILE id="omg2Wl" name="edge.h" compile="0" resource="0" file="../source/delaunay/edge.h"/>
+        <FILE id="BmNjRZ" name="triangle.cpp" compile="1" resource="0" file="../source/delaunay/triangle.cpp"/>
+        <FILE id="hDsyvJ" name="triangle.h" compile="0" resource="0" file="../source/delaunay/triangle.h"/>
+        <FILE id="JFImlC" name="vector2.h" compile="0" resource="0" file="../source/delaunay/vector2.h"/>
+      </GROUP>
       <FILE id="OQ0d3J" name="AudioParameter.cpp" compile="1" resource="0"
             file="../source/AudioParameter.cpp"/>
       <FILE id="nYJYru" name="AudioParameter.h" compile="0" resource="0"
@@ -36,17 +44,16 @@
     </GROUP>
   </MAINGROUP>
   <EXPORTFORMATS>
-    <VS2013 targetFolder="Builds/VisualStudio2013" externalLibraries="triangle++.lib"
-            vstFolder="D:\Dev\Biblioteki\vstsdk2.4" vst3Folder="D:\Dev\Biblioteki\VST3 SDK">
+    <VS2013 targetFolder="Builds/VisualStudio2013" externalLibraries="" vstFolder="D:\Dev\Biblioteki\vstsdk2.4"
+            vst3Folder="D:\Dev\Biblioteki\VST3 SDK">
       <CONFIGURATIONS>
         <CONFIGURATION name="Debug" winWarningLevel="4" generateManifest="1" winArchitecture="x64"
-                       isDebug="1" optimisation="1" targetName="binaural-vst" libraryPath="../../../libs/lib/msvc12/triangle++/64/debug"
-                       headerPath="../../../libs/include/" postbuildCommand="copy /Y &quot;$(OutDir)\$(TargetFileName)&quot; &quot;$(SolutionDir)\..\..\..\build\BinAural.dll&quot;"
+                       isDebug="1" optimisation="1" targetName="binaural-vst" libraryPath=""
+                       headerPath="" postbuildCommand="copy /Y &quot;$(OutDir)\$(TargetFileName)&quot; &quot;$(SolutionDir)\..\..\..\build\BinAural.dll&quot;"
                        prebuildCommand="" useRuntimeLibDLL="1"/>
         <CONFIGURATION name="Release" winWarningLevel="4" generateManifest="1" winArchitecture="x64"
-                       isDebug="0" optimisation="3" targetName="binaural-vst" headerPath="../../../libs/include/"
-                       libraryPath="../../../libs/lib/msvc12/triangle++/64/release"
-                       postbuildCommand="copy /Y &quot;$(OutDir)\$(TargetFileName)&quot; &quot;$(SolutionDir)\..\..\..\build\BinAural_x64.dll&quot;"
+                       isDebug="0" optimisation="3" targetName="binaural-vst" headerPath=""
+                       libraryPath="" postbuildCommand="copy /Y &quot;$(OutDir)\$(TargetFileName)&quot; &quot;$(SolutionDir)\..\..\..\build\BinAural_x64.dll&quot;"
                        useRuntimeLibDLL="0"/>
       </CONFIGURATIONS>
       <MODULEPATHS>
