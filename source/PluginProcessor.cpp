@@ -67,11 +67,6 @@ bool HrtfBiAuralAudioProcessor::producesMidi() const
 #endif
 }
 
-bool HrtfBiAuralAudioProcessor::silenceInProducesSilenceOut() const
-{
-	return false;
-}
-
 double HrtfBiAuralAudioProcessor::getTailLengthSeconds() const
 {
 	return 0.0;

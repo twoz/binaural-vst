@@ -26,7 +26,6 @@ public: // AudioProcessor implementation
 
 	bool acceptsMidi() const override;
 	bool producesMidi() const override;
-	bool silenceInProducesSilenceOut() const override;
 	double getTailLengthSeconds() const override;
 
 	int getNumPrograms() override;
