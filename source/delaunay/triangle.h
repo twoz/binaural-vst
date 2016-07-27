@@ -13,6 +13,7 @@ class Triangle
 	
 		bool containsVertex(const Vec2f &v);
 		bool circumCircleContains(const Vec2f &v);
+		bool isDegenerate() const;
 	
 		Vec2f p1;
 		Vec2f p2;

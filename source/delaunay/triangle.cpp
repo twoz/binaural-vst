@@ -30,3 +30,10 @@ bool Triangle::circumCircleContains(const Vec2f &v)
 
 
 }
+
+bool Triangle::isDegenerate() const
+{
+	const double T[] = { p1.x - p3.x, p1.y - p3.y, p2.x - p3.x, p2.y - p3.y };
+	const auto det = T[0] * T[3] - T[1] * T[2];
+	return det == 0;
+}

@@ -44,7 +44,7 @@ const std::vector<Triangle>& Delaunay::triangulate(std::vector<Vec2f> &vertices)
 		{
 			//std::cout << "Processing " << std::endl << *t << std::endl;
 
-			if(t->circumCircleContains(*p))
+			if(t->isDegenerate() || t->circumCircleContains(*p))
 			{
 				//std::cout << "Pushing bad triangle " << *t << std::endl;
 				badTriangles.push_back(*t);
