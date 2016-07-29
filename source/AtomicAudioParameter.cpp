@@ -1,8 +1,8 @@
-#include "AudioParameter.h"
+#include "AtomicAudioParameter.h"
 #include "Util.h"
 
 
-AudioParameter::AudioParameter(String name, String label, float minValue, float maxValue, float defaultValue)
+AtomicAudioParameter::AtomicAudioParameter(String name, String label, float minValue, float maxValue, float defaultValue)
 	: name_(name)
 	, label_(label)
 	, minValue_(minValue)
@@ -12,57 +12,57 @@ AudioParameter::AudioParameter(String name, String label, float minValue, float 
 	valueNormalized_ = mapToRange(defaultValue, minValue, maxValue, 0.f, 1.f);
 }
 
-float AudioParameter::getValue() const
+float AtomicAudioParameter::getValue() const
 {
 	return valueNormalized_;
 }
 
-void AudioParameter::setValue(float newValueNormalized)
+void AtomicAudioParameter::setValue(float newValueNormalized)
 {
 	valueNormalized_.store(newValueNormalized);
 }
 
-float AudioParameter::getDefaultValue() const
+float AtomicAudioParameter::getDefaultValue() const
 {
 	return mapToRange(defaultValue_, minValue_, maxValue_, 0.f, 1.f);
 }
 
-String AudioParameter::getName(int maximumStringLength) const
+String AtomicAudioParameter::getName(int maximumStringLength) const
 {
 	return name_.dropLastCharacters(name_.length() - maximumStringLength);
 }
 
-String AudioParameter::getLabel() const
+String AtomicAudioParameter::getLabel() const
 {
 	return label_;
 }
 
-float AudioParameter::getValueForText(const String& text) const
+float AtomicAudioParameter::getValueForText(const String& text) const
 {
 	return mapToRange(text.getFloatValue(), minValue_, maxValue_, 0.f, 1.f);
 }
 
-void AudioParameter::setValueAndNotifyHost(float newValue)
+void AtomicAudioParameter::setValueAndNotifyHost(float newValue)
 {
 	setValueNotifyingHost(mapToRange(newValue, minValue_, maxValue_, 0.f, 1.f));
 }
 
-float AudioParameter::value() const
+float AtomicAudioParameter::value() const
 {
 	return mapToRange(valueNormalized_.load(), 0.f, 1.f, minValue_, maxValue_);
 }
 
-float AudioParameter::minValue() const
+float AtomicAudioParameter::minValue() const
 {
 	return minValue_;
 }
 
-float AudioParameter::maxValue() const
+float AtomicAudioParameter::maxValue() const
 {
 	return maxValue_;
 }
 
-float AudioParameter::defaultValue() const
+float AtomicAudioParameter::defaultValue() const
 {
 	return defaultValue_;
 }

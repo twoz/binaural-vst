@@ -4,9 +4,11 @@
 
 
 HRTFContainer::HRTFContainer()
-	:
-	hrir_()
 {
+	jassert(hrirReadIndex.is_lock_free());
+	hrirReadIndex = 0;
+	hrir_[0] = {};
+	hrir_[1] = {};
 }
 
 HRTFContainer::~HRTFContainer()
@@ -43,25 +45,24 @@ void HRTFContainer::updateHRIR(double azimuth, double elevation)
 		// does not lay inside the triangle, so continue the loop.
 		if (g1 < 0 || g2 < 0 || g3 < 0)
 			continue;
-		else
+		auto& irA = hrirDict_[static_cast<int>(A.x)][getElvIndex(std::lround(A.y))];
+		auto& irB = hrirDict_[static_cast<int>(B.x)][getElvIndex(std::lround(B.y))];
+		auto& irC = hrirDict_[static_cast<int>(C.x)][getElvIndex(std::lround(C.y))];
+		const auto hrirWriteIndex = hrirReadIndex ^ 1;
+		auto& hrir = hrir_[hrirWriteIndex];
+		for (size_t i = 0; i < hrir[0].size(); ++i)
 		{
-			auto& irA = hrirDict_[static_cast<int>(A.x)][getElvIndex(std::lround(A.y))];
-			auto& irB = hrirDict_[static_cast<int>(B.x)][getElvIndex(std::lround(B.y))];
-			auto& irC = hrirDict_[static_cast<int>(C.x)][getElvIndex(std::lround(C.y))];
-			// Fill HRIR array and return
-			for (size_t i = 0; i < hrir_[0].size(); ++i)
-			{
-				hrir_[0][i] = g1 * irA[0][i] + g2 * irB[0][i] + g3 * irC[0][i];
-				hrir_[1][i] = g1 * irA[1][i] + g2 * irB[1][i] + g3 * irC[1][i];
-			}
-			return;
+			hrir[0][i] = g1 * irA[0][i] + g2 * irB[0][i] + g3 * irC[0][i];
+			hrir[1][i] = g1 * irA[1][i] + g2 * irB[1][i] + g3 * irC[1][i];
 		}
+		hrirReadIndex = hrirWriteIndex;
+		return;
 	}
 }
 
 const HrirBuffer& HRTFContainer::hrir() const
 {
-	return hrir_;
+	return hrir_[hrirReadIndex];
 }
 
 void HRTFContainer::loadHrir(String filename)

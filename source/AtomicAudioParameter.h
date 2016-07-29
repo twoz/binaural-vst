@@ -3,11 +3,10 @@
 #include "../JuceLibraryCode/JuceHeader.h"
 
 
-class AudioParameter :
-	public AudioProcessorParameter
+class AtomicAudioParameter : public AudioProcessorParameter
 {
 public:
-	AudioParameter(String name, String label, float minValue, float maxValue, float defaultValue);
+	AtomicAudioParameter(String name, String label, float minValue, float maxValue, float defaultValue);
 
 public: // AudioProcessorParameter implementation
 	float getValue() const override;

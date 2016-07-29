@@ -44,7 +44,7 @@ private:
 	TextButton bypassButton_;
 	int topSectionY_;
 
-	std::unordered_map<Slider*, AudioParameter*> knobToParam_;
+	std::unordered_map<Slider*, AtomicAudioParameter*> knobToParam_;
 
 	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(HrtfBiAuralAudioProcessorEditor)
 };

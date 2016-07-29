@@ -4,7 +4,7 @@
 #include "FIRFilter.h"
 
 
-class AudioParameter;
+class AtomicAudioParameter;
 
 class HrtfBiAuralAudioProcessor :
 	public AudioProcessor
@@ -27,6 +27,7 @@ public: // AudioProcessor implementation
 	bool acceptsMidi() const override;
 	bool producesMidi() const override;
 	double getTailLengthSeconds() const override;
+	void reset() override;
 
 	int getNumPrograms() override;
 	int getCurrentProgram() override;
@@ -40,14 +41,13 @@ public: // AudioProcessor implementation
 public:
 	void updateHRTF(double, double);
 	void toggleBypass(bool bypass);
-	void reset();
-	void onAudioParameterChanged(AudioParameter* parameter);
+	void onAudioParameterChanged(AtomicAudioParameter* parameter);
 
 	bool isHRIRLoaded() const;
 
-	AudioParameter* getCrossoverFrequencyParameter() const;
-	AudioParameter* getWetParameter() const;
-	AudioParameter* getGainParameter() const;
+	AtomicAudioParameter* getCrossoverFrequencyParameter() const;
+	AtomicAudioParameter* getWetParameter() const;
+	AtomicAudioParameter* getGainParameter() const;
 
 private:
 	struct Crossover
@@ -66,19 +66,16 @@ private:
 	} crossover_;
 	FIRFilter filters_[2];
 	HRTFContainer hrtfContainer_;
-	HrirBuffer currentHrir_;
 	std::vector<float> loPassIn_;
 	std::vector<float> hiPassIn_;
 	std::vector<float> buffers_[2];
-	float crossfadeRate;
 	
-	bool crossfading_;
 	bool bypassed_;
 	bool hrirLoaded_;
 
-	AudioParameter* crossoverFreq_;
-	AudioParameter* wetPercent_;
-	AudioParameter* gainDb_;
+	AtomicAudioParameter* crossoverFreq_;
+	AtomicAudioParameter* wetPercent_;
+	AtomicAudioParameter* gainDb_;
 
 
 	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(HrtfBiAuralAudioProcessor)

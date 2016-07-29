@@ -1,6 +1,7 @@
 #pragma once
 #include <array>
 #include <map>
+#include <atomic>
 #include "../JuceLibraryCode/JuceHeader.h"
 
 #define HRIR_LENGTH 200
@@ -21,5 +22,6 @@ private:
 
 	std::map<int, std::array<HrirBuffer, 52>> hrirDict_;
 	ScopedPointer<class Delaunay> triangulation_;
-	HrirBuffer hrir_;
+	HrirBuffer hrir_[2];
+	std::atomic_int hrirReadIndex;
 };

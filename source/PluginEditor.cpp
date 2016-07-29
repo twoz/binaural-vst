@@ -1,5 +1,5 @@
 #include "PluginEditor.h"
-#include "AudioParameter.h"
+#include "AtomicAudioParameter.h"
 
 
 HrtfBiAuralAudioProcessorEditor::HrtfBiAuralAudioProcessorEditor(HrtfBiAuralAudioProcessor& p)
