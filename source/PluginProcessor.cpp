@@ -32,7 +32,7 @@ HrtfBiAuralAudioProcessor::HrtfBiAuralAudioProcessor()
 	}
 	hrtfContainer_.updateHRIR(0, 0);
 
-	setLatencySamples(HRIR_LENGTH  / 2); // "almost true" ofc...HRTF isn't really linear phase...
+	setLatencySamples(HRIRBuffer::HRIR_SIZE  / 2); // "almost true" ofc...HRTF isn't really linear phase...
 }
 
 HrtfBiAuralAudioProcessor::~HrtfBiAuralAudioProcessor()
@@ -91,14 +91,12 @@ void HrtfBiAuralAudioProcessor::changeProgramName(int, const String&)
 
 void HrtfBiAuralAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
 {
-	crossover_.set(sampleRate, crossover_.f0);
-	loPassIn_.resize(samplesPerBlock);
-	hiPassIn_.resize(samplesPerBlock);
+	crossover_.setSampleRate(sampleRate);
+	crossoverOutput.setSize(2, samplesPerBlock);
 	buffers_[0].resize(samplesPerBlock);
 	buffers_[1].resize(samplesPerBlock);
-	filters_[0].init(samplesPerBlock, HRIR_LENGTH);
-	filters_[1].init(samplesPerBlock, HRIR_LENGTH);
-	//hrirInterpValue.reset(sampleRate, defaultHrirInterpolationTime * samplesPerBlock / buffers_[0].size());
+	filters_[0].init(samplesPerBlock, HRIRBuffer::HRIR_SIZE);
+	filters_[1].init(samplesPerBlock, HRIRBuffer::HRIR_SIZE);
 }
 
 void HrtfBiAuralAudioProcessor::releaseResources()
@@ -112,8 +110,8 @@ void HrtfBiAuralAudioProcessor::processBlock(AudioSampleBuffer& buffer, MidiBuff
 
 	// TODO: Interpolation/crossfading since simply changing the filter's impulse response causes waveform discontinuities
 	const auto& hrir = hrtfContainer_.hrir();
-	filters_[0].setImpulseResponse(hrir[0].data());
-	filters_[1].setImpulseResponse(hrir[1].data());
+	filters_[0].setImpulseResponse(hrir.leftEarIR.data());
+	filters_[1].setImpulseResponse(hrir.rightEarIR.data());
 
 	auto inL = buffer.getWritePointer(0);
 	auto inR = buffer.getWritePointer(1);
@@ -129,14 +127,12 @@ void HrtfBiAuralAudioProcessor::processBlock(AudioSampleBuffer& buffer, MidiBuff
 
 	// split the input signal into two bands, only freqs above crossover's f0
 	// will be spatialized
-	memcpy(loPassIn_.data(), inL, bufferLength * sizeof(float));
-	memcpy(hiPassIn_.data(), inL, bufferLength * sizeof(float));
-	crossover_.loPass.processSamples(loPassIn_.data(), bufferLength);
-	crossover_.hiPass.processSamples(hiPassIn_.data(), bufferLength);
+	crossover_.process(buffer, 0, crossoverOutput);
 
 	// we need to copy the hi-pass input to buffers
-	memcpy(buffers_[0].data(), hiPassIn_.data(), bufferLength * sizeof(float));
-	memcpy(buffers_[1].data(), hiPassIn_.data(), bufferLength * sizeof(float));
+	const auto highPassInput = crossoverOutput.getReadPointer(Crossover::hiPassChannelIndex);
+	memcpy(buffers_[0].data(), highPassInput, bufferLength * sizeof(float));
+	memcpy(buffers_[1].data(), highPassInput, bufferLength * sizeof(float));
 
 	// actual hrir filtering
 	filters_[0].process(buffers_[0].data());
@@ -150,11 +146,12 @@ void HrtfBiAuralAudioProcessor::processBlock(AudioSampleBuffer& buffer, MidiBuff
 	const auto wet = wetPercent_->value() / 100;
 	const auto dry = 1 - wet;
 	float monoIn;
-	for (int i = 0; i < bufferLength; i++)
+	const auto lowPassInput = crossoverOutput.getReadPointer(Crossover::loPassChannelIndex);
+	for (auto i = 0; i < bufferLength; i++)
 	{
 		monoIn = inL[i];
-		outL[i] = wet * (loPassIn_[i] + buffers_[0][i]) + dry * monoIn;
-		outR[i] = wet * (loPassIn_[i] + buffers_[1][i]) + dry * monoIn;
+		outL[i] = wet * (lowPassInput[i] + buffers_[0][i]) + dry * monoIn;
+		outR[i] = wet * (lowPassInput[i] + buffers_[1][i]) + dry * monoIn;
 	}
 
 	// apply output gain
@@ -187,7 +184,6 @@ AudioProcessor* JUCE_CALLTYPE createPluginFilter()
 void HrtfBiAuralAudioProcessor::updateHRTF(double azimuth, double elevation)
 {
 	hrtfContainer_.updateHRIR(azimuth, elevation);
-	hrirCrossfadeValue = 0.f;
 }
 
 void HrtfBiAuralAudioProcessor::toggleBypass(bool bypass)
@@ -198,8 +194,7 @@ void HrtfBiAuralAudioProcessor::toggleBypass(bool bypass)
 
 void HrtfBiAuralAudioProcessor::reset()
 {
-	crossover_.loPass.reset();
-	crossover_.hiPass.reset();
+	crossover_.reset();
 	filters_[0].reset();
 	filters_[1].reset();
 }
@@ -207,7 +202,7 @@ void HrtfBiAuralAudioProcessor::reset()
 void HrtfBiAuralAudioProcessor::onAudioParameterChanged(AtomicAudioParameter* parameter)
 {
 	if (parameter == crossoverFreq_)
-		crossover_.set(crossover_.fs, parameter->value());
+		crossover_.setCrossoverFrequency(parameter->value());
 }
 
 bool HrtfBiAuralAudioProcessor::isHRIRLoaded() const

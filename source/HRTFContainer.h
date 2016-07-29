@@ -4,8 +4,14 @@
 #include <atomic>
 #include "../JuceLibraryCode/JuceHeader.h"
 
-#define HRIR_LENGTH 200
-using HrirBuffer = std::array < std::array<float, HRIR_LENGTH>, 2 >;
+struct HRIRBuffer
+{
+	static const auto HRIR_SIZE = 200u;
+	using ImpulseResponse = std::array<float, HRIR_SIZE>;
+
+	ImpulseResponse leftEarIR;
+	ImpulseResponse rightEarIR;
+};
 
 class HRTFContainer
 {
@@ -14,14 +20,14 @@ public:
 	~HRTFContainer();
 
 	void updateHRIR(double azimuth, double elevation);
-	const HrirBuffer& hrir() const;
+	const HRIRBuffer& hrir() const;
 
 	void loadHrir(String filename);
 private:
 	static int getElvIndex(int elv);
 
-	std::map<int, std::array<HrirBuffer, 52>> hrirDict_;
+	std::map<int, std::array<HRIRBuffer, 52>> hrirDict_;
 	ScopedPointer<class Delaunay> triangulation_;
-	HrirBuffer hrir_[2];
+	HRIRBuffer hrir_[2];
 	std::atomic_int hrirReadIndex;
 };

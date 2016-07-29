@@ -2,12 +2,12 @@
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "HRTFContainer.h"
 #include "FIRFilter.h"
+#include "Crossover.h"
 
 
 class AtomicAudioParameter;
 
-class HrtfBiAuralAudioProcessor :
-	public AudioProcessor
+class HrtfBiAuralAudioProcessor : public AudioProcessor
 {
 public:
 	HrtfBiAuralAudioProcessor();
@@ -50,24 +50,10 @@ public:
 	AtomicAudioParameter* getGainParameter() const;
 
 private:
-	struct Crossover
-	{
-		IIRFilter loPass;
-		IIRFilter hiPass;
-		double f0 = 150.;
-		double fs = 44100.;
-		void set(double fs, double f0)
-		{
-			loPass.setCoefficients(IIRCoefficients::makeLowPass(fs, f0));
-			hiPass.setCoefficients(IIRCoefficients::makeHighPass(fs, f0));
-			this->fs = fs;
-			this->f0 = f0;
-		}
-	} crossover_;
 	FIRFilter filters_[2];
 	HRTFContainer hrtfContainer_;
-	std::vector<float> loPassIn_;
-	std::vector<float> hiPassIn_;
+	AudioSampleBuffer crossoverOutput;
+	Crossover crossover_;
 	std::vector<float> buffers_[2];
 	
 	bool bypassed_;

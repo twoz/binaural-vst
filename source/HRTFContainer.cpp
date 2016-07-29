@@ -49,18 +49,18 @@ void HRTFContainer::updateHRIR(double azimuth, double elevation)
 		auto& irB = hrirDict_[static_cast<int>(B.x)][getElvIndex(std::lround(B.y))];
 		auto& irC = hrirDict_[static_cast<int>(C.x)][getElvIndex(std::lround(C.y))];
 		const auto hrirWriteIndex = hrirReadIndex ^ 1;
-		auto& hrir = hrir_[hrirWriteIndex];
-		for (size_t i = 0; i < hrir[0].size(); ++i)
+		auto& hrirBuffer = hrir_[hrirWriteIndex];
+		for (auto i = 0u; i < hrirBuffer.HRIR_SIZE; ++i)
 		{
-			hrir[0][i] = g1 * irA[0][i] + g2 * irB[0][i] + g3 * irC[0][i];
-			hrir[1][i] = g1 * irA[1][i] + g2 * irB[1][i] + g3 * irC[1][i];
+			hrirBuffer.leftEarIR[i] = g1 * irA.leftEarIR[i] + g2 * irB.leftEarIR[i] + g3 * irC.leftEarIR[i];
+			hrirBuffer.rightEarIR[i] = g1 * irA.rightEarIR[i] + g2 * irB.rightEarIR[i] + g3 * irC.rightEarIR[i];
 		}
 		hrirReadIndex = hrirWriteIndex;
 		return;
 	}
 }
 
-const HrirBuffer& HRTFContainer::hrir() const
+const HRIRBuffer& HRTFContainer::hrir() const
 {
 	return hrir_[hrirReadIndex];
 }
@@ -75,21 +75,21 @@ void HRTFContainer::loadHrir(String filename)
 			-15, -10, -5, 0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 55, 65, 80, 90};
 		for (auto& azm : azimuths)
 		{
-			hrirDict_.insert(std::make_pair(azm, std::array<HrirBuffer, 52>()));
+			hrirDict_.insert(std::make_pair(azm, std::array<HRIRBuffer, 52>()));
 			// -90 deg
-			istream.read(hrirDict_[azm][0][0].data(), 200 * sizeof(float));
-			istream.read(hrirDict_[azm][0][1].data(), 200 * sizeof(float));
+			istream.read(hrirDict_[azm][0].leftEarIR.data(), 200 * sizeof(float));
+			istream.read(hrirDict_[azm][0].rightEarIR.data(), 200 * sizeof(float));
 			points.push_back({static_cast<float>(azm), -90.f});
 			// 50 elevations
 			for (int i = 1; i < 51; ++i)
 			{
-				istream.read(hrirDict_[azm][i][0].data(), 200 * sizeof(float));
-				istream.read(hrirDict_[azm][i][1].data(), 200 * sizeof(float));
+				istream.read(hrirDict_[azm][i].leftEarIR.data(), 200 * sizeof(float));
+				istream.read(hrirDict_[azm][i].rightEarIR.data(), 200 * sizeof(float));
 				points.push_back({static_cast<float>(azm), -45.f + 5.625f * (i - 1)});
 			}
 			// 270 deg
-			istream.read(hrirDict_[azm][51][0].data(), 200 * sizeof(float));
-			istream.read(hrirDict_[azm][51][1].data(), 200 * sizeof(float));
+			istream.read(hrirDict_[azm][51].leftEarIR.data(), 200 * sizeof(float));
+			istream.read(hrirDict_[azm][51].rightEarIR.data(), 200 * sizeof(float));
 			points.push_back({static_cast<float>(azm), 270});
 		}
 		triangulation_ = new Delaunay();
