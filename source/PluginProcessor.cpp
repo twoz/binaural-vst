@@ -93,10 +93,9 @@ void HrtfBiAuralAudioProcessor::prepareToPlay(double sampleRate, int samplesPerB
 {
 	crossover_.setSampleRate(sampleRate);
 	crossoverOutput.setSize(2, samplesPerBlock);
-	buffers_[0].resize(samplesPerBlock);
-	buffers_[1].resize(samplesPerBlock);
-	filters_[0].init(samplesPerBlock, HRIRBuffer::HRIR_SIZE);
-	filters_[1].init(samplesPerBlock, HRIRBuffer::HRIR_SIZE);
+	hrirFilterL.prepare(samplesPerBlock);
+	hrirFilterR.prepare(samplesPerBlock);
+	monoInputBuffer.setSize(1, samplesPerBlock);
 }
 
 void HrtfBiAuralAudioProcessor::releaseResources()
@@ -108,50 +107,43 @@ void HrtfBiAuralAudioProcessor::processBlock(AudioSampleBuffer& buffer, MidiBuff
 	if (bypassed_)
 		return;
 
-	// TODO: Interpolation/crossfading since simply changing the filter's impulse response causes waveform discontinuities
-	const auto& hrir = hrtfContainer_.hrir();
-	filters_[0].setImpulseResponse(hrir.leftEarIR.data());
-	filters_[1].setImpulseResponse(hrir.rightEarIR.data());
-
-	auto inL = buffer.getWritePointer(0);
-	auto inR = buffer.getWritePointer(1);
-	auto bufferLength = buffer.getNumSamples();
+	auto bufferLChannel = buffer.getWritePointer(0);
+	auto bufferRChannel = buffer.getWritePointer(1);
+	const auto bufferLength = buffer.getNumSamples();
 
 	// downmix to mono in case of a stereo input
 	// by adding from the right channel to left channel
 	if (getTotalNumInputChannels() == 2)
 	{
-		buffer.addFrom(0, 0, inR, bufferLength);
+		buffer.addFrom(0, 0, bufferRChannel, bufferLength);
 		buffer.applyGain(0.5f);
 	}
+	monoInputBuffer.copyFrom(0, 0, buffer, 0, 0, bufferLength);
 
 	// split the input signal into two bands, only freqs above crossover's f0
 	// will be spatialized
 	crossover_.process(buffer, 0, crossoverOutput);
 
 	// we need to copy the hi-pass input to buffers
-	const auto highPassInput = crossoverOutput.getReadPointer(Crossover::hiPassChannelIndex);
-	memcpy(buffers_[0].data(), highPassInput, bufferLength * sizeof(float));
-	memcpy(buffers_[1].data(), highPassInput, bufferLength * sizeof(float));
+	buffer.copyFrom(0, 0, crossoverOutput, Crossover::hiPassChannelIndex, 0, bufferLength);
+	buffer.copyFrom(1, 0, crossoverOutput, Crossover::hiPassChannelIndex, 0, bufferLength);
 
 	// actual hrir filtering
-	filters_[0].process(buffers_[0].data());
-	filters_[1].process(buffers_[1].data());
-
-	// copy to output
-	auto outL = inL;
-	auto outR = inR;
+	const auto& hrir = hrtfContainer_.hrir();
+	hrirFilterL.setImpulseResponse(hrir.leftEarIR);
+	hrirFilterR.setImpulseResponse(hrir.rightEarIR);
+	hrirFilterL.process(bufferLChannel, bufferLength);
+	hrirFilterR.process(bufferRChannel, bufferLength);
 
 	// fill stereo output
-	const auto wet = wetPercent_->value() / 100;
-	const auto dry = 1 - wet;
-	float monoIn;
+	const auto wetRatio = wetPercent_->value() / 100;
+	const auto dryRatio = 1 - wetRatio;
 	const auto lowPassInput = crossoverOutput.getReadPointer(Crossover::loPassChannelIndex);
 	for (auto i = 0; i < bufferLength; i++)
 	{
-		monoIn = inL[i];
-		outL[i] = wet * (lowPassInput[i] + buffers_[0][i]) + dry * monoIn;
-		outR[i] = wet * (lowPassInput[i] + buffers_[1][i]) + dry * monoIn;
+		const auto monoIn = *monoInputBuffer.getReadPointer(0, i);
+		bufferLChannel[i] = wetRatio * (lowPassInput[i] + bufferLChannel[i]) + dryRatio * monoIn;
+		bufferRChannel[i] = wetRatio * (lowPassInput[i] + bufferRChannel[i]) + dryRatio * monoIn;
 	}
 
 	// apply output gain
@@ -195,8 +187,8 @@ void HrtfBiAuralAudioProcessor::toggleBypass(bool bypass)
 void HrtfBiAuralAudioProcessor::reset()
 {
 	crossover_.reset();
-	filters_[0].reset();
-	filters_[1].reset();
+	hrirFilterL.reset();
+	hrirFilterR.reset();
 }
 
 void HrtfBiAuralAudioProcessor::onAudioParameterChanged(AtomicAudioParameter* parameter)

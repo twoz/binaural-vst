@@ -1,6 +1,7 @@
 #pragma once
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "HRTFContainer.h"
+#include "HRIRFilter.h"
 #include "FIRFilter.h"
 #include "Crossover.h"
 
@@ -50,11 +51,12 @@ public:
 	AtomicAudioParameter* getGainParameter() const;
 
 private:
-	FIRFilter filters_[2];
+	HRIRFilter hrirFilterL;
+	HRIRFilter hrirFilterR;
 	HRTFContainer hrtfContainer_;
 	AudioSampleBuffer crossoverOutput;
 	Crossover crossover_;
-	std::vector<float> buffers_[2];
+	AudioSampleBuffer monoInputBuffer;
 	
 	bool bypassed_;
 	bool hrirLoaded_;

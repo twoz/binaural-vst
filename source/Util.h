@@ -6,8 +6,6 @@
 template <typename T>
 using ComplexVector = std::vector<std::complex<T>>;
 
-const float Pi = 3.14159265358f;
-
 inline bool isPowerOf2(size_t val)
 {
 	return (val == 1 || (val & (val - 1)) == 0);
@@ -57,13 +55,13 @@ struct Point3DoublePolar
 template <typename Type>
 inline Type deg2rad(Type deg)
 {
-	return deg * Pi / 180;
+	return deg * float_Pi / 180;
 }
 
 template <typename Type>
 inline Type rad2deg(Type rad)
 {
-	return rad * 180 / Pi;
+	return rad * 180 / float_Pi;
 }
 
 template <typename Type>
@@ -73,7 +71,7 @@ inline Point3DoublePolar<Type> cartesianToInteraural(const Point3Cartesian<Type>
 	Type azimuth = std::asin(p.x / radius);
 	Type elevation = std::atan2(p.z, p.y);
 	if (p.y < 0 && p.z < 0)
-		elevation += 2 * Pi;
+		elevation += 2 * float_Pi;
 
 	return Point3DoublePolar < Type > { radius, azimuth, elevation };
 }

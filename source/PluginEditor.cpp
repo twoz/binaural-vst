@@ -36,7 +36,7 @@ HrtfBiAuralAudioProcessorEditor::HrtfBiAuralAudioProcessorEditor(HrtfBiAuralAudi
 		knob->setColour(Slider::textBoxBackgroundColourId, Colours::black);
 		knob->setColour(Slider::textBoxTextColourId, Colours::white);
 		knob->setColour(Slider::textBoxOutlineColourId, Colours::black);
-		knob->setRotaryParameters(10 / 8.f * Pi, 22 / 8.f * Pi, true);
+		knob->setRotaryParameters(10 / 8.f * float_Pi, 22 / 8.f * float_Pi, true);
 		knob->setTextBoxStyle(Slider::TextBoxBelow, true, 70, 15);
 		knob->addListener(this);
 		addAndMakeVisible(knob);
