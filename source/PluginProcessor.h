@@ -2,9 +2,7 @@
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "HRTFContainer.h"
 #include "HRIRFilter.h"
-#include "FIRFilter.h"
 #include "Crossover.h"
-
 
 class AtomicAudioParameter;
 
@@ -42,8 +40,6 @@ public: // AudioProcessor implementation
 public:
 	void updateHRTF(double, double);
 	void toggleBypass(bool bypass);
-	void onAudioParameterChanged(AtomicAudioParameter* parameter);
-
 	bool isHRIRLoaded() const;
 
 	AtomicAudioParameter* getCrossoverFrequencyParameter() const;
@@ -51,19 +47,21 @@ public:
 	AtomicAudioParameter* getGainParameter() const;
 
 private:
+	void processParameterChanges();
+
 	HRIRFilter hrirFilterL;
 	HRIRFilter hrirFilterR;
-	HRTFContainer hrtfContainer_;
+	HRTFContainer hrtfContainer;
 	AudioSampleBuffer crossoverOutput;
-	Crossover crossover_;
+	Crossover crossover;
 	AudioSampleBuffer monoInputBuffer;
 	
-	bool bypassed_;
-	bool hrirLoaded_;
+	bool bypassed;
+	bool hrirLoaded;
 
-	AtomicAudioParameter* crossoverFreq_;
-	AtomicAudioParameter* wetPercent_;
-	AtomicAudioParameter* gainDb_;
+	AtomicAudioParameter* crossoverFreqParam;
+	AtomicAudioParameter* wetPercentParam;
+	AtomicAudioParameter* gainDbParam;
 
 
 	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(HrtfBiAuralAudioProcessor)

@@ -27,8 +27,8 @@ HrtfBiAuralAudioProcessorEditor::HrtfBiAuralAudioProcessorEditor(HrtfBiAuralAudi
 		const auto& param = pair.second;
 
 		const auto interval = 0.1;
-		knob->setRange(param->minValue(), param->maxValue(), interval);
-		knob->setValue(param->defaultValue());
+		knob->setRange(param->getRange().start, param->getRange().end, interval);
+		knob->setValue(param->getDefault());
 		knob->setTextValueSuffix(param->getLabel());
 
 		knob->setSliderStyle(Slider::Rotary);
@@ -136,8 +136,7 @@ void HrtfBiAuralAudioProcessorEditor::sliderDragStarted(Slider* slider)
 void HrtfBiAuralAudioProcessorEditor::sliderValueChanged(Slider* slider)
 {
 	auto& changedParam = knobToParam_.at(slider);
-	changedParam->setValueAndNotifyHost(static_cast<float>(slider->getValue()));
-	processor_.onAudioParameterChanged(changedParam);
+	changedParam->setNewValue(static_cast<float>(slider->getValue()));
 }
 
 void HrtfBiAuralAudioProcessorEditor::sliderDragEnded(Slider* slider)

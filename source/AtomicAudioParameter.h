@@ -6,30 +6,31 @@
 class AtomicAudioParameter : public AudioProcessorParameter
 {
 public:
-	AtomicAudioParameter(String name, String label, float minValue, float maxValue, float defaultValue);
+	AtomicAudioParameter(String name, String label, NormalisableRange<float> range, float defaultValue);
 
-public: // AudioProcessorParameter implementation
-	float getValue() const override;
-	void setValue(float newValueNormalized) override;
-	float getDefaultValue() const override;
-	String getName(int maximumStringLength) const override;
-	String getLabel() const override;
-	float getValueForText(const String& text) const override;
+	void setNewValue(float newValue);
+	float getValueAndMarkRead();
+	bool hasNewValue() const { return state.load().valueChangedSinceLastRead == 1? true : false; }
 
-public:
-	void setValueAndNotifyHost(float newValue);
-	float value() const;
-
-	float minValue() const;
-	float maxValue() const;
-	float defaultValue() const;
+	const NormalisableRange<float>& getRange() const { return range; }
+	String getLabel() const override { return label; }
+	float getDefault() const { return defaultValue; }
 
 private:
-	String name_;
-	String label_;
+	float getValue() const override;
+	float getDefaultValue() const override;
+	void setValue(float newValueNormalized) override;
+	String getName(int maximumStringLength) const override;
+	float getValueForText(const String& text) const override;
 
-	std::atomic<float> valueNormalized_;
-	float minValue_;
-	float maxValue_;
-	float defaultValue_;
+	String name;
+	String label;
+	NormalisableRange<float> range;
+	float defaultValue;
+	struct AtomicAudioParameterState
+	{
+		float value;
+		int valueChangedSinceLastRead;
+	};
+	std::atomic<AtomicAudioParameterState> state;
 };

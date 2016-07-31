@@ -1,68 +1,49 @@
 #include "AtomicAudioParameter.h"
-#include "Util.h"
 
 
-AtomicAudioParameter::AtomicAudioParameter(String name, String label, float minValue, float maxValue, float defaultValue)
-	: name_(name)
-	, label_(label)
-	, minValue_(minValue)
-	, maxValue_(maxValue)
-	, defaultValue_(defaultValue)
+AtomicAudioParameter::AtomicAudioParameter(String name, String label, NormalisableRange<float> range, float defaultValue)
+	: name(name)
+	, label(label)
+	, range(range)
+	, defaultValue(defaultValue)
+	, state({defaultValue, true})
 {
-	valueNormalized_ = mapToRange(defaultValue, minValue, maxValue, 0.f, 1.f);
+	jassert(state.is_lock_free());
 }
 
-float AtomicAudioParameter::getValue() const
+void AtomicAudioParameter::setNewValue(float newValue)
 {
-	return valueNormalized_;
+	setValueNotifyingHost(range.convertTo0to1(newValue));
 }
 
-void AtomicAudioParameter::setValue(float newValueNormalized)
+float AtomicAudioParameter::getValueAndMarkRead()
 {
-	valueNormalized_.store(newValueNormalized);
+	const auto currentVal = state.load().value;
+	state.store({currentVal, 0});
+	return currentVal;
 }
 
 float AtomicAudioParameter::getDefaultValue() const
 {
-	return mapToRange(defaultValue_, minValue_, maxValue_, 0.f, 1.f);
+	return defaultValue;
+}
+
+float AtomicAudioParameter::getValue() const
+{
+	return range.convertTo0to1(state.load().value);
+}
+
+void AtomicAudioParameter::setValue(float newValueNormalized)
+{
+	state.store({ range.convertFrom0to1(newValueNormalized), 1 });
 }
 
 String AtomicAudioParameter::getName(int maximumStringLength) const
 {
-	return name_.dropLastCharacters(name_.length() - maximumStringLength);
-}
-
-String AtomicAudioParameter::getLabel() const
-{
-	return label_;
+	return name.dropLastCharacters(name.length() - maximumStringLength);
 }
 
 float AtomicAudioParameter::getValueForText(const String& text) const
 {
-	return mapToRange(text.getFloatValue(), minValue_, maxValue_, 0.f, 1.f);
-}
-
-void AtomicAudioParameter::setValueAndNotifyHost(float newValue)
-{
-	setValueNotifyingHost(mapToRange(newValue, minValue_, maxValue_, 0.f, 1.f));
-}
-
-float AtomicAudioParameter::value() const
-{
-	return mapToRange(valueNormalized_.load(), 0.f, 1.f, minValue_, maxValue_);
-}
-
-float AtomicAudioParameter::minValue() const
-{
-	return minValue_;
-}
-
-float AtomicAudioParameter::maxValue() const
-{
-	return maxValue_;
-}
-
-float AtomicAudioParameter::defaultValue() const
-{
-	return defaultValue_;
+	return range.convertTo0to1(text.getFloatValue());
 }

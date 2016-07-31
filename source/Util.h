@@ -25,12 +25,6 @@ inline int nextPowerOf2(int x)
 }
 
 template <typename T>
-inline T mapToRange(T value, T minFrom, T maxFrom, T minTo, T maxTo)
-{
-	return ((value - minFrom) / (maxFrom - minFrom)) * (maxTo - minTo) + minTo;
-}
-
-template <typename T>
 inline T clamp(const T& x, const T& lower, const T& upper)
 {
 	return std::min<T>(std::max<T>(x, lower), upper);
