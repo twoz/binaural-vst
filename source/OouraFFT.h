@@ -1,9 +1,6 @@
 #pragma once
-#include <cassert>
-#include <cmath>
 #include <complex>
 #include <vector>
-#include "Util.h"
 
 
 class OouraFFT
@@ -20,6 +17,8 @@ public:
 	// out must have length nfft
 	// in must have length nfft/2 + 1
 	void ifft(std::complex<float>* in, float* out);
+
+	size_t getNfft() const { return nfft; }
 
 private:
 	// original routines from the ooura fft (fast version, radix 4/2)
@@ -38,4 +37,6 @@ private:
 	std::vector<int> ip_; // work area for bit reversal
 	std::vector<double> sineTable_;
 	std::vector<double> buffer_;
+
+	size_t nfft = 0u;
 };

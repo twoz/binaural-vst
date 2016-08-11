@@ -1,4 +1,6 @@
 #include "OouraFFT.h"
+#include <cassert>
+#include "Util.h"
 
 
 void OouraFFT::init(size_t nfft)
@@ -8,6 +10,7 @@ void OouraFFT::init(size_t nfft)
 	ip_.resize(2 + (size_t)std::sqrt(nfft / 2));
 	sineTable_.resize(nfft / 2);
 	buffer_.resize(nfft);
+	this->nfft = nfft;
 }
 
 void OouraFFT::fft(float* in, std::complex<float>* out)
